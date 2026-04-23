@@ -1,5 +1,5 @@
 ---
-{"dg-publish":true,"permalink":"/.canvas/","contentClasses":"canvas-page","dg-note-properties":{}}
+{"dg-publish":true,"permalink":"/母体.canvas/","contentClasses":"canvas-page","dg-note-properties":{}}
 ---
 
 <div id="母体canvas" class="canvas-wrapper hide">
@@ -30,7 +30,7 @@
 	<div class="canvas-node-label">1234testlink1234</div>
 	<div class="canvas-node-container">
 		<div class="canvas-node-content markdown-embed">
-			<iframe src="/vault/1234testlink1234//" class="canvas-file-iframe" loading="lazy"></iframe>
+			<iframe src="/Vault/1234testlink1234//" class="canvas-file-iframe" loading="lazy"></iframe>
 		</div>
 	</div>
 </div>

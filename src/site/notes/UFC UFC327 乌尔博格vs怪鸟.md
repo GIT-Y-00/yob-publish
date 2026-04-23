@@ -1,5 +1,5 @@
 ---
-{"dg-publish":true,"permalink":"/ufc-ufc-327-vs/","tags":["gardenEntry"],"dg-note-properties":{}}
+{"dg-publish":true,"permalink":"/UFC UFC327 乌尔博格vs怪鸟/","tags":["gardenEntry"],"dg-note-properties":{}}
 ---
 
 

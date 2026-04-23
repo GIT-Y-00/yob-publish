@@ -1,5 +1,5 @@
 ---
-{"dg-publish":true,"permalink":"/vault/.canvas/","contentClasses":"canvas-page","dg-note-properties":{}}
+{"dg-publish":true,"permalink":"/Vault/测试嵌套.canvas/","contentClasses":"canvas-page","dg-note-properties":{}}
 ---
 
 <div id="测试嵌套canvas" class="canvas-wrapper hide">
@@ -25,7 +25,7 @@
 	<div class="canvas-node-label">母体.canvas</div>
 	<div class="canvas-node-container">
 		<div class="canvas-node-content markdown-embed">
-			<iframe src="/.canvas//" class="canvas-file-iframe" loading="lazy"></iframe>
+			<iframe src="/母体.canvas//" class="canvas-file-iframe" loading="lazy"></iframe>
 		</div>
 	</div>
 </div>
