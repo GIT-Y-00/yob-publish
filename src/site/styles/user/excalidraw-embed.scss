@@ -1,9 +1,10 @@
 /* 自定义：src/site/styles/user/excalidraw-embed.scss */
 
 /**
- * Iframe Embed Styles (The Ultimate Cloak) V7.4
+ * Iframe Embed Styles (The Ultimate Cloak) V7.5
  * * [集成 V2.11] 强制关闭平滑滚动，确保 JS 高频位移指令零延迟。
- * * [集成 V7.4] 彻底中和 V6.x 引入的侧边栏布局与画布边距，确保 MD 和 Excalidraw 嵌套时均能无缝铺满。
+ * * [集成 V7.4] 彻底中和 V6.x 引入的布局，确保 MD 和 Excalidraw 无缝铺满。
+ * * [V7.5 修复] 为 MD 正文容器恢复恰当的 Padding 与 Box-Sizing，防止文字贴脸，保持呼吸感。
  */
 
 /* =========================================
@@ -33,37 +34,36 @@ html.is-in-iframe {
         display: none !important;
     }
 
-    /* 3. 容器拉伸：确保 MD 文本区占满 Iframe */
+    /* 3. [V7.5 核心修复] 容器拉伸与呼吸感兼顾 */
     .content, 
     .markdown-preview-view,
     main,
     .page-wrapper {
         margin: 0 !important;
-        padding: 0 !important;
+        
+        /* 恢复适度的内边距：上下 1.5rem，左右 2rem，让文字舒适阅读 */
+        padding: 1.5rem 2rem !important; 
+        
+        /* 极其重要：确保内边距往里收缩，而不是往外撑破 100% 的宽度 */
+        box-sizing: border-box !important; 
+        
         max-width: none !important;
         width: 100% !important;
         min-height: 100vh !important;
     }
 
-    /* 4. [V7.4 关键修复] 针对内嵌 Excalidraw 画布的“去壳”逻辑
-       彻底中和在 excalidraw-fullscreen.scss 中定义的非全屏装饰样式。 */
+    /* 4. 针对内嵌 Excalidraw 画布的“去壳”逻辑 */
     .excalidraw-wrapper {
-        /* 强行抹除 V6.x 定义的上下 2rem 呼吸边距 */
         margin: 0 !important; 
-        
-        /* 强行抹除 V6.x 定义的 65vh 高度，让其绝对铺满 Iframe 的整个高度 */
         height: 100vh !important; 
         min-height: 100vh !important;
         max-height: none !important;
-        
-        /* 强行铺满宽度，抹除圆角和投影 */
         width: 100vw !important;
         max-width: none !important;
+        
         border-radius: 0 !important;
         border: none !important;
         box-shadow: none !important;
-        
-        /* 确保背景透明，不产生双重底色 */
         background-color: transparent !important;
     }
 }
