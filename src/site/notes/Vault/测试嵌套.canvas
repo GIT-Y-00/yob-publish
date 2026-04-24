@@ -21,18 +21,18 @@
 			</feMerge>
 		</filter></defs>
 		</svg>
-		<div class="canvas-node canvas-node-file " data-node-id="5e562cba1711607e" data-file-path="母体.canvas" style="transform: translate(160px, -200px); width: 620px; height: 500px; ">
+		<div class="canvas-node canvas-node-text has-color" data-node-id="27cdaafef46b77fb" style="transform: translate(280px, -380px); width: 260px; height: 60px; --canvas-color: #fb464c;">
+	<div class="canvas-node-container">
+		<div class="canvas-node-content markdown-rendered">
+			<div class="canvas-node-text-content" data-markdown="6L+Z5piv5ZWl77yf"></div>
+		</div>
+	</div>
+</div>
+<div class="canvas-node canvas-node-file " data-node-id="5e562cba1711607e" data-file-path="母体.canvas" style="transform: translate(60px, -180px); width: 620px; height: 500px; ">
 	<div class="canvas-node-label">母体.canvas</div>
 	<div class="canvas-node-container">
 		<div class="canvas-node-content markdown-embed">
 			<iframe src="/母体.canvas//" class="canvas-file-iframe" loading="lazy"></iframe>
-		</div>
-	</div>
-</div>
-<div class="canvas-node canvas-node-text has-color" data-node-id="27cdaafef46b77fb" style="transform: translate(280px, -380px); width: 260px; height: 60px; --canvas-color: #fb464c;">
-	<div class="canvas-node-container">
-		<div class="canvas-node-content markdown-rendered">
-			<div class="canvas-node-text-content" data-markdown="6L+Z5piv5ZWl77yf"></div>
 		</div>
 	</div>
 </div>
