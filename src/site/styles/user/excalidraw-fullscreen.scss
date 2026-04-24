@@ -1,43 +1,56 @@
 /* 自定义：src/site/styles/user/excalidraw-fullscreen.scss */
 
 /**
- * Excalidraw Outer Fullscreen & Responsive Styles V6.1
+ * Excalidraw Outer Fullscreen & Responsive Styles V6.2
  * * 包含 V4.1 的全屏与 SVG 图标逻辑。
- * * [V6.1 修复] 修复 V6.0 中 85vw 导致 4K 屏幕下宽度暴走、撑爆屏幕遮挡按钮的 Bug。
- * * 引入更安全的硬上限 (1400px) 与自适应居中。
+ * * [V6.2 终极修复] 引入“力场防护罩 (Padding Force Fields)”。
+ * * 完美避开左右两侧的悬浮面板，实现在任何分辨率下的绝对安全居中。
  */
 
 /* =========================================
- * 1. 动态拓宽阅读区 (V6.1 宽屏防爆修复)
+ * 1. 动态拓宽阅读区 (V6.2 力场防护罩版)
  * ========================================= */
+
+/* 全局生效（含手机端）：释放原主题的宽度锁 */
 .content:has(.excalidraw-wrapper),
 .markdown-preview-view:has(.excalidraw-wrapper),
 main:has(.excalidraw-wrapper),
 .page-wrapper:has(.excalidraw-wrapper) {
-    /* 占据当前可用空间的 100% */
     width: 100% !important;
-    
-    /* [核心修复] 放弃无脑的 85vw。
-       1400px 既能保证在 1080p/2K 下几乎铺满阅读区，
-       又能在 4K 下保持优雅的居中，绝对不会被右侧 sidebar 遮挡。*/
-    max-width: 1400px !important; 
-    
-    /* 确保扩大后的容器在父级中完美居中 */
-    margin-left: auto !important;
-    margin-right: auto !important;
-    
-    transition: max-width 0.3s ease;
+    max-width: 100% !important; /* 彻底解除外部封印，由内部 padding 控场 */
+    box-sizing: border-box !important;
+    transition: padding 0.3s ease;
+}
+
+/* 宽屏专属 (> 1400px)：开启双侧防护力场 */
+@media (min-width: 1400px) {
+    .content:has(.excalidraw-wrapper),
+    .markdown-preview-view:has(.excalidraw-wrapper),
+    main:has(.excalidraw-wrapper),
+    .page-wrapper:has(.excalidraw-wrapper) {
+        
+        /* 左侧力场：完美同步 filetree 的 clamp 公式，并加上 2rem 呼吸空间 */
+        padding-left: calc(clamp(250px, 20vw, 350px) + 2rem) !important;
+        
+        /* 右侧力场：给 sidebar 预留 350px 的绝对防区，并加上 2rem 呼吸空间 */
+        padding-right: calc(350px + 2rem) !important;
+    }
 }
 
 /* =========================================
- * 2. 非全屏状态的比例适配 (继承 V6.0 并优化居中)
+ * 2. 非全屏状态的比例适配 (V6.2)
  * ========================================= */
 .excalidraw-wrapper:not(.is-fullscreen) {
-    /* 上下保留 2rem 呼吸空间，左右 auto 配合居中 */
-    margin: 2rem auto !important;
+    /* 1. 在安全区内拉满宽度 */
     width: 100% !important;
     
-    /* 视口比例高度，手机兜底 400px，大屏封顶 1200px */
+    /* 2. 4K 屏幕防暴走硬上限 */
+    max-width: 1400px !important;
+    
+    /* 3. 在力场保护的安全区内绝对居中 */
+    margin: 2rem auto !important;
+    
+    /* 黄金比例高度 */
     height: 65vh !important; 
     min-height: 400px !important; 
     max-height: 1200px !important; 
@@ -50,7 +63,7 @@ main:has(.excalidraw-wrapper),
 }
 
 /* =========================================
- * 3. 全屏按钮默认悬浮样式 (继承自 V4.1)
+ * 3. 全屏按钮默认悬浮样式
  * ========================================= */
 .dg-excalidraw-fs-btn {
     position: absolute;
@@ -82,7 +95,7 @@ main:has(.excalidraw-wrapper),
 }
 
 /* =========================================
- * 4. 核心：外层容器的全屏 (Zen Mode) 状态 (继承自 V4.1)
+ * 4. 核心：外层容器的全屏 (Zen Mode) 状态 
  * ========================================= */
 .excalidraw-wrapper.is-fullscreen {
     position: fixed !important;
