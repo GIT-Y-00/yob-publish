@@ -1,23 +1,24 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V8.0
- * * 包含 V7.2 的深度嵌套层级支持。
- * * [V8.0 逻辑重构] 引入链式后缀清洗器 (Chain Suffix Cleaner)，完美解决 .excalidraw.md.svg 等多重后缀堆叠导致的路由匹配失败问题。
+ * Excalidraw React Injector V8.1
+ * * 包含 V7.2 的深度嵌套支持。
+ * * [V8.1 终极路由引擎] 引入多维候选名单 (Multi-Candidate Resolver) 与 404 免疫，
+ * * 完美解决嵌套画板因后缀强力清洗导致与 linkMap 字典脱节的 404 寻址灾难。
  */
 
 console.error("=========================================");
-console.error("[V8.0 Log] userSetup.js loaded. Chain Suffix Cleaner ENGAGED.");
+console.error("[V8.1 Log] userSetup.js loaded. Multi-Candidate Resolver ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v8.0", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v8.1", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
 
       // ==========================================
-      // 阶段 A：路径雷达与清洗
+      // 阶段 A：路径雷达与免疫清洗
       // ==========================================
       const linkMap = {};
       const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
@@ -25,6 +26,10 @@ function userEleventySetup(eleventyConfig) {
       
       while ((match = anchorRegex.exec(content)) !== null) {
         const href = match[1];
+        
+        // [V8.1 核心防御] 拒绝将无效的 /404 死链录入字典库，防止污染查询
+        if (href.includes('404')) continue;
+        
         const text = match[2].replace(/<[^>]+>/g, '').trim(); 
         if (text) linkMap[text] = href; 
         
@@ -44,7 +49,7 @@ function userEleventySetup(eleventyConfig) {
       });
 
       // ==========================================
-      // 阶段 C：终极路由解析器 (V8.0 链式清洗)
+      // 阶段 C：终极路由解析器 (V8.1 多维查表)
       // ==========================================
       const dataRegex = /(["']?)link\1\s*:\s*(["'])(.*?)\2/g;
       
@@ -54,45 +59,61 @@ function userEleventySetup(eleventyConfig) {
             return matchedStr;
         }
 
-        // 1. 剔除括号和别名
+        // 1. 剔除括号和别名，得到初始基准名
         let baseFilename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
-        
-        // 2. [V8.0 核心] 链式清理：循环剔除结尾的所有 .md 和 .svg，无视堆叠顺序
-        let filename = baseFilename.replace(/(\.md|\.svg)+$/i, '');
+        if (!baseFilename) return matchedStr;
 
-        if (!filename) return matchedStr;
+        // 2. [V8.1 降维打击] 建立多维候选名单，应对各类字典残留
+        let candidates = [
+            baseFilename,                                          // 原始状态 (可能匹配极特殊别名)
+            baseFilename.replace(/\.svg$/i, ''),                   // 剥离单层 svg -> B.excalidraw.md
+            baseFilename.replace(/\.md$/i, ''),                    // 剥离单层 md -> B.excalidraw.svg
+            baseFilename.replace(/(\.md|\.svg)+$/i, ''),           // 剥离干扰项 -> B.excalidraw
+            baseFilename.replace(/(\.md|\.svg|\.excalidraw)+$/i, '') // 极简核心 -> B
+        ];
 
-        // 3. 第一顺位查找：带 .excalidraw 的原名查找
-        let realPath = linkMap[filename];
-        
-        // 4. 第二顺位查找：如果连 .excalidraw 后缀都去掉了呢？
-        if (!realPath) {
-            let cleanName = filename.replace(/\.excalidraw$/i, '');
-            realPath = linkMap[cleanName] || linkMap[cleanName + '.excalidraw'];
+        let realPath = null;
+        let matchedCandidate = "";
+
+        // 3. 轰炸式精确查找
+        for (let candidate of candidates) {
+            if (linkMap[candidate]) {
+                realPath = linkMap[candidate];
+                matchedCandidate = candidate;
+                break;
+            }
         }
 
-        // 5. 第三顺位查找：极端情况下的 Slug 模糊匹配
+        // 4. 轰炸式模糊(Slug)查找
         if (!realPath) {
-           const targetSlug = filename.toLowerCase().replace(/\s+/g, '-');
-           const cleanSlug = targetSlug.replace(/-excalidraw$/, '');
-           for (const key in linkMap) {
-               const keySlug = key.toLowerCase().replace(/\s+/g, '-');
-               if (keySlug === targetSlug || keySlug === cleanSlug) { 
-                   realPath = linkMap[key]; 
-                   break; 
-               }
-           }
+            for (let candidate of candidates) {
+                let targetSlug = candidate.toLowerCase().replace(/\s+/g, '-');
+                for (const key in linkMap) {
+                    if (key.toLowerCase().replace(/\s+/g, '-') === targetSlug) {
+                        realPath = linkMap[key];
+                        matchedCandidate = key;
+                        break;
+                    }
+                }
+                if (realPath) break;
+            }
         }
         
-        const finalPath = realPath ? realPath : `/${filename}/`;
+        // 5. 终极回退方案：如果连全站字典都找不到，用最干净的名字强行拼接
+        let finalPath = realPath;
+        if (!finalPath) {
+            let cleanFallback = baseFilename.replace(/(\.md|\.svg)+$/i, '');
+            finalPath = `/${cleanFallback}/`;
+        }
         
-        console.log(`[V8.0 Radar] Fixed Link: ${innerLink} ---> ${finalPath}`);
+        // 构建雷达：让你在终端清晰看到它命中了哪个候选词
+        console.log(`[V8.1 Radar] Target: ${baseFilename} | Found via: ${matchedCandidate || 'Fallback'} | Path: ${finalPath}`);
 
         return `${keyQuote}link${keyQuote}: ${valQuote}${finalPath}${valQuote}`;
       });
 
       // ==========================================
-      // 阶段 D：注入高性能交互卡片
+      // 阶段 D：注入高性能交互卡片 (继承 V7.2 深度嵌套逻辑)
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
@@ -170,13 +191,11 @@ function userEleventySetup(eleventyConfig) {
             excalidrawProps.validateEmbeddable = function() { return true; };
             excalidrawProps.renderEmbeddable = function(node) { 
               if (node && node.link) { 
-                
                 if (window.top !== window.self && window.top !== window.parent) {
                   return React.createElement("div", { 
                     style: { display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", background: "var(--background-secondary, #f8f9fa)", border: "2px dashed #d1d5db", borderRadius: "8px" } 
                   }, React.createElement("a", { href: node.link, target: "_top", style: { color: "#3b82f6", textDecoration: "none", fontWeight: "bold", pointerEvents: "auto" } }, "🔗 深度嵌套，点击跳转"));
                 }
-                
                 return React.createElement(window.DgExcalidrawWrapper, { link: node.link, key: node.id });
               } 
               return null; 
