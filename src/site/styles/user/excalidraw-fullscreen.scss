@@ -1,40 +1,57 @@
 /* 自定义：src/site/styles/user/excalidraw-fullscreen.scss */
 
 /**
- * Excalidraw Outer Fullscreen & Responsive Styles V6.1
+ * Excalidraw Outer Fullscreen & Responsive Styles V6.2
  * * 包含 V4.1 的全屏与 SVG 图标逻辑。
- * * [V6.1 修复] 修复 V6.0 中 85vw 导致 4K 屏幕下宽度暴走、撑爆屏幕遮挡按钮的 Bug。
- * * 引入更安全的硬上限 (1400px) 与自适应居中。
+ * * [V6.2 修复] 根据 F12 侦查结果，废弃无脑居中，引入精准的 fixed 侧边栏物理避让计算。
  */
 
 /* =========================================
- * 1. 动态拓宽阅读区 (V6.1 宽屏防爆修复)
+ * 1. 动态拓宽阅读区 (V6.2 物理避让版)
  * ========================================= */
+
+/* 基础情况 (< 1400px)：手机/平板/窄屏。
+   此时侧边栏可能收起或变为底部排列，只需安全占满屏幕并留一点内边距 */
 .content:has(.excalidraw-wrapper),
 .markdown-preview-view:has(.excalidraw-wrapper),
 main:has(.excalidraw-wrapper),
 .page-wrapper:has(.excalidraw-wrapper) {
-    /* 占据当前可用空间的 100% */
-    width: 100% !important;
-    
-    /* [核心修复] 放弃无脑的 85vw。
-       1400px 既能保证在 1080p/2K 下几乎铺满阅读区，
-       又能在 4K 下保持优雅的居中，绝对不会被右侧 sidebar 遮挡。*/
-    max-width: 1400px !important; 
-    
-    /* 确保扩大后的容器在父级中完美居中 */
+    max-width: 100% !important;
+    width: auto !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
     margin-left: auto !important;
     margin-right: auto !important;
-    
-    transition: max-width 0.3s ease;
+    transition: all 0.3s ease;
+}
+
+/* 宽屏情况 (>= 1400px)：两侧侧边栏为 Fixed 悬浮状态，必须进行物理避让 */
+@media (min-width: 1400px) {
+    .content:has(.excalidraw-wrapper),
+    .markdown-preview-view:has(.excalidraw-wrapper),
+    main:has(.excalidraw-wrapper),
+    .page-wrapper:has(.excalidraw-wrapper) {
+        /* 解除所有的最大宽度限制，让其充满安全区域 */
+        max-width: none !important;
+        width: auto !important;
+        
+        /* [核心修复：精确碰撞避让] */
+        /* 左侧避让：匹配 V3.5 中定义的 filetree 宽度 (下限250px，动态20vw，上限350px) + 2rem 的安全呼吸间距 */
+        margin-left: calc(clamp(250px, 20vw, 350px) + 2rem) !important;
+        
+        /* 右侧避让：匹配原生 sidebar 的最大宽度 (读取原生变量，兜底 350px) + 2rem 的安全呼吸间距 */
+        margin-right: calc(var(--dg-sidebar-max-width, 350px) + 2rem) !important;
+        
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
 }
 
 /* =========================================
- * 2. 非全屏状态的比例适配 (继承 V6.0 并优化居中)
+ * 2. 非全屏状态的比例适配 (继承 V6.0 黄金比例)
  * ========================================= */
 .excalidraw-wrapper:not(.is-fullscreen) {
-    /* 上下保留 2rem 呼吸空间，左右 auto 配合居中 */
-    margin: 2rem auto !important;
+    margin: 2rem 0 !important;
     width: 100% !important;
     
     /* 视口比例高度，手机兜底 400px，大屏封顶 1200px */
