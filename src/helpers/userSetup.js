@@ -1,21 +1,21 @@
 /**
- * Excalidraw React Injector v2.2 (Diagnostic Edition)
- * * 引入高精度探测点，排查 Iframe 滚动焦点丢失的真实根源。
- * * 侦测同源策略阻塞、React 渲染时序以及 DOM ActiveElement 转移轨迹。
+ * Excalidraw React Injector v2.3 (Final Polish)
+ * * 核心突破：修复 "User Gesture Token" 丢失导致的滚轮失效问题。
+ * * 机制：在 onPointerDown 的同步调用栈中直接强夺焦点，绕过异步渲染造成的浏览器信任降级。
  */
 
 console.error("=========================================");
-console.error("[v2.2 Log] userSetup.js is active. Deep Diagnostic Probes ENGAGED.");
+console.error("[v2.3 Log] userSetup.js loaded. Synchronous Gesture Engine ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v2.2", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v2.3", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
 
       // ==========================================
-      // 阶段 A.0 & A.1：路径雷达与清洗 (沿用 V2.1 的成熟逻辑)
+      // 阶段 A：路径雷达与清洗
       // ==========================================
       const linkMap = {};
       const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
@@ -52,7 +52,7 @@ function userEleventySetup(eleventyConfig) {
       });
 
       // ==========================================
-      // 阶段 B：带有深度探针的 React 组件
+      // 阶段 B：注入高性能交互卡片 (去除异步焦点延迟)
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
@@ -65,84 +65,53 @@ function userEleventySetup(eleventyConfig) {
                 const [isInteractive, setIsInteractive] = React.useState(false);
                 const iframeRef = React.useRef(null);
 
-                React.useEffect(() => {
-                  console.error(\`[v2.2 Probe] State changed. isInteractive: \${isInteractive}\`);
+                // 核心控制函数：处理点击并在同一个宏任务中同步完成焦点转移
+                const toggleInteraction = React.useCallback((e) => {
+                  e.preventDefault(); 
+                  e.stopPropagation(); 
                   
-                  if (isInteractive && iframeRef.current) {
-                    // 探针 1：记录触发前的父级焦点
-                    console.error("[v2.2 Probe] Before Focus Attempt - Parent Active Element:", document.activeElement ? document.activeElement.tagName + "." + document.activeElement.className : "None");
-                    
-                    // 使用 requestAnimationFrame 确保 React 已经将 pointer-events: auto 渲染到 DOM 上
-                    requestAnimationFrame(() => {
-                      setTimeout(() => {
-                        console.error("[v2.2 Probe] DOM repaint confirmed. Executing focus logic...");
-                        
-                        // 探针 2：检查同源策略 (SOP) 是否拦截了我们访问内部 Window
-                        try {
+                  const willBeInteractive = !isInteractive;
+                  setIsInteractive(willBeInteractive); // 触发 React 更新
+
+                  // [V2.3 关键修复]：不使用 useEffect，不使用 setTimeout。
+                  // 趁着浏览器的 "User Gesture" 还在生效期，立刻强夺焦点！
+                  if (willBeInteractive && iframeRef.current) {
+                      try {
                           const cw = iframeRef.current.contentWindow;
                           if (cw) {
-                            const testAccess = cw.location.href; // 如果跨域，这句会抛出 DOMException 错误
-                            console.error(\`[v2.2 Probe] SOP Check PASSED. iframe URL is accessible: \${testAccess}\`);
-                            
-                            // 尝试强行唤醒内部网页的焦点
-                            cw.focus();
-                            console.error("[v2.2 Probe] Action: contentWindow.focus() executed.");
-                            
-                            // 探针 3：注入内部焦点检测脚本 (仅在同源下有效)
-                            try {
-                                const innerDoc = cw.document;
-                                const innerBody = innerDoc.body;
-                                innerBody.focus(); // 尝试把焦点压给内部 body
-                                console.error("[v2.2 Probe] Action: innerDoc.body.focus() executed.");
-                                console.error("[v2.2 Probe] Inner Active Element is now:", innerDoc.activeElement ? innerDoc.activeElement.tagName : "Unknown");
-                            } catch (innerErr) {
-                                console.error("[v2.2 Probe] Could not manipulate inner DOM:", innerErr.message);
-                            }
-
-                          } else {
-                            console.error("[v2.2 Probe] FAILED: contentWindow is null.");
+                              // 将焦点压实到内部视口
+                              if (cw.document && cw.document.documentElement) {
+                                  cw.document.documentElement.setAttribute('tabindex', '-1');
+                                  cw.document.documentElement.focus({ preventScroll: true });
+                              }
+                              cw.focus();
                           }
-                        } catch (err) {
-                          console.error("[v2.2 Probe] SOP Check FAILED. Browser blocked cross-origin access! Error:", err.message);
-                        }
-
-                        // 兜底操作
-                        iframeRef.current.focus();
-                        console.error("[v2.2 Probe] Action: iframe DOM Node focused.");
-                        
-                        // 探针 4：确认最终结果
-                        console.error("[v2.2 Probe] After Focus Attempt - Parent Active Element:", document.activeElement ? document.activeElement.tagName + "." + document.activeElement.className : "None");
-                        
-                      }, 100); // 100ms 保证绝对充裕的渲染时间
-                    });
-
-                  } else if (!isInteractive) {
-                    if (document.activeElement === iframeRef.current) {
-                      iframeRef.current.blur();
-                    }
-                    window.focus();
+                      } catch (err) { /* SOP 兜底 */ }
+                      iframeRef.current.focus();
+                  } else if (!willBeInteractive) {
+                      if (document.activeElement === iframeRef.current) {
+                          iframeRef.current.blur();
+                      }
+                      window.focus();
                   }
                 }, [isInteractive]);
 
                 return React.createElement("div", {
                   style: { position: "relative", width: "100%", height: "100%", boxSizing: "border-box", pointerEvents: "none" }
                 },
-                  // 注意这里改用了 onClick 进行测试，观察是否由 onPointerDown 引起的原生事件冲突
                   React.createElement("button", {
-                    onClick: function(e) { 
-                      e.preventDefault(); 
-                      e.stopPropagation(); 
-                      console.error("[v2.2 Probe] Interaction Button CLICKED!");
-                      setIsInteractive(!isInteractive); 
-                    },
+                    // 同时监听 PointerDown 和 Click 以兼容不同设备的物理手势判定
+                    onPointerDown: toggleInteraction,
+                    onClick: toggleInteraction,
                     style: { 
                       position: "absolute", top: "8px", right: "8px", zIndex: 50, 
-                      padding: "4px 8px", 
-                      background: isInteractive ? "rgba(239, 68, 68, 0.9)" : "rgba(59, 130, 246, 0.9)", 
+                      padding: "5px 10px", 
+                      background: isInteractive ? "rgba(239, 68, 68, 0.95)" : "rgba(59, 130, 246, 0.95)", 
                       color: "white", 
                       border: "none", borderRadius: "6px", 
                       fontSize: "12px", fontWeight: "bold", cursor: "pointer", 
-                      pointerEvents: "auto", transition: "background 0.2s"
+                      pointerEvents: "auto", transition: "all 0.2s",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
                     }
                   }, isInteractive ? "锁定滚动" : "开启交互"),
 
