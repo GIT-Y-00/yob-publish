@@ -13,8 +13,6 @@ console.error("=========================================");
 function userEleventySetup(eleventyConfig) {
   eleventyConfig.addTransform("fix-excalidraw-links-v5.0", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
-      // 【测试代码】强行短路，不执行任何我们的自定义替换
-      return content;
       let fixedContent = content;
 
       // ==========================================
