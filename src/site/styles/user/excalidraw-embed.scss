@@ -1,10 +1,10 @@
 /* 自定义：src/site/styles/user/excalidraw-embed.scss */
 
 /**
- * Iframe Embed Styles (The Ultimate Cloak) V7.5
+ * Iframe Embed Styles (The Floating Card) V7.5
  * * [集成 V2.11] 强制关闭平滑滚动，确保 JS 高频位移指令零延迟。
- * * [集成 V7.4] 彻底中和 V6.x 引入的布局，确保 MD 和 Excalidraw 无缝铺满。
- * * [V7.5 修复] 为 MD 正文容器恢复恰当的 Padding 与 Box-Sizing，防止文字贴脸，保持呼吸感。
+ * * [V7.5 微调] 放弃绝对贴边铺满，在四周保留 0.5rem 的等宽呼吸边距，
+ * * 并配合 calc() 严防滚动条溢出，恢复微圆角提升精致感。
  */
 
 /* =========================================
@@ -19,7 +19,7 @@ html.is-in-iframe {
         background-color: transparent !important;
         margin: 0 !important;
         padding: 0 !important;
-        overflow-x: hidden !important;
+        overflow: hidden !important; /* 彻底封杀边距可能引发的次级滚动条 */
     }
 
     /* 2. 纯净隐身：彻底摘除所有导航、侧边栏和页眉页脚 */
@@ -34,36 +34,36 @@ html.is-in-iframe {
         display: none !important;
     }
 
-    /* 3. [V7.5 核心修复] 容器拉伸与呼吸感兼顾 */
+    /* 3. 容器拉伸：确保 MD 文本区占满 Iframe */
     .content, 
     .markdown-preview-view,
     main,
     .page-wrapper {
         margin: 0 !important;
-        
-        /* 恢复适度的内边距：上下 1.5rem，左右 2rem，让文字舒适阅读 */
-        padding: 1.5rem 2rem !important; 
-        
-        /* 极其重要：确保内边距往里收缩，而不是往外撑破 100% 的宽度 */
-        box-sizing: border-box !important; 
-        
+        padding: 0 !important;
         max-width: none !important;
         width: 100% !important;
         min-height: 100vh !important;
     }
 
-    /* 4. 针对内嵌 Excalidraw 画布的“去壳”逻辑 */
+    /* 4. [V7.5 视觉微调] Excalidraw 悬浮卡片式内嵌 */
     .excalidraw-wrapper {
-        margin: 0 !important; 
-        height: 100vh !important; 
-        min-height: 100vh !important;
+        /* 四周等宽 0.5rem 的呼吸边距 */
+        margin: 0.5rem !important; 
+        
+        /* 核心物理计算：总宽高必须精准扣除上下左右各 0.5rem (合计 1rem) 的占用空间 */
+        height: calc(100vh - 1rem) !important; 
+        min-height: calc(100vh - 1rem) !important;
         max-height: none !important;
-        width: 100vw !important;
+        
+        width: calc(100vw - 1rem) !important;
         max-width: none !important;
         
-        border-radius: 0 !important;
-        border: none !important;
-        box-shadow: none !important;
+        /* 既然不再贴边，加回微小的圆角和一层极淡的边框，打造“卡片悬浮”质感 */
+        border-radius: 8px !important;
+        border: 1px solid var(--background-modifier-border, rgba(100,100,100,0.15)) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+        
         background-color: transparent !important;
     }
 }
