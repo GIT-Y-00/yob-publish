@@ -1,17 +1,49 @@
 /* 自定义：src/site/styles/user/excalidraw-fullscreen.scss */
 
 /**
- * Excalidraw Outer Fullscreen Styles V4.1
- * * 目标：控制 excalidraw-wrapper 的全屏状态与控制按钮样式。
- * * [V4.1 更新]：移除突兀的红色警告背景，退出全屏按钮统一为极简线条白色设计。
+ * Excalidraw Outer Fullscreen & Responsive Styles V6.0
+ * * 包含 V4.1 的全屏 (Zen Mode) 与纯白线框退出按钮。
+ * * [V6.0 新增] 废弃固定像素宽高，引入视口比例 (vh/vw) 与 :has() 动态拓宽机制。
  */
 
-/* 1. 为外层容器提供相对定位基准，以便按钮吸附 */
-.excalidraw-wrapper {
-    position: relative; 
+/* =========================================
+ * 1. 动态拓宽阅读区 (V6.0 黑科技)
+ * ========================================= */
+/* 当页面内存在画布时，自动打破原主题（通常是 700px）的正文宽度限制 */
+.content:has(.excalidraw-wrapper),
+.markdown-preview-view:has(.excalidraw-wrapper),
+main:has(.excalidraw-wrapper),
+.page-wrapper:has(.excalidraw-wrapper) {
+    max-width: 85vw !important; /* 在 4K 和 1080p 下均按比例展开，占据 85% 的可用宽度 */
+    width: 100% !important;
+    transition: max-width 0.3s ease;
 }
 
-/* 2. 全屏按钮的默认悬浮样式 */
+/* =========================================
+ * 2. 非全屏状态的比例适配 (V6.0)
+ * ========================================= */
+.excalidraw-wrapper:not(.is-fullscreen) {
+    /* 覆盖原本死板的 margin: 50px，上下保留 2rem 的呼吸空间，左右自动填满扩宽后的容器 */
+    margin: 2rem 0 !important;
+    width: 100% !important;
+    
+    /* 废弃写死的 800px，改用视口比例 (65% 的屏幕高度) */
+    height: 65vh !important; 
+    min-height: 400px !important; /* 手机端兜底高度，防止缩成一条线 */
+    max-height: 1200px !important; /* 超大屏封顶高度 */
+    
+    position: relative;
+    
+    /* 附加一点现代质感美化 */
+    border-radius: 12px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+    border: 1px solid var(--background-modifier-border, rgba(100,100,100,0.2)) !important;
+    overflow: hidden !important; /* 确保圆角能切住内部的画布 */
+}
+
+/* =========================================
+ * 3. 全屏按钮默认样式 (继承自 V4.1)
+ * ========================================= */
 .dg-excalidraw-fs-btn {
     position: absolute;
     top: 12px;
@@ -41,7 +73,9 @@
     border-color: transparent;
 }
 
-/* 3. 核心：外层容器的全屏 (Zen Mode) 状态 */
+/* =========================================
+ * 4. 核心全屏 (Zen Mode) 状态 (继承自 V4.1)
+ * ========================================= */
 .excalidraw-wrapper.is-fullscreen {
     position: fixed !important;
     top: 0 !important;
@@ -54,25 +88,25 @@
     max-width: none !important;
     border-radius: 0 !important;
     background-color: var(--background-primary, #1e1e1e) !important;
+    border: none !important;
 }
 
-/* 4. [V4.1 核心更新] 全屏状态下的退出按钮：极简线条白色 */
+/* 全屏状态下的退出按钮：极简线条白色 */
 .excalidraw-wrapper.is-fullscreen .dg-excalidraw-fs-btn {
     position: fixed;
     top: 20px;
     right: 20px;
     
-    /* 极简透明设计 */
     background-color: transparent; 
-    color: #ffffff; /* 纯白 X 图标 */
-    border: 1px solid rgba(255, 255, 255, 0.4); /* 白色线框 */
+    color: #ffffff; 
+    border: 1px solid rgba(255, 255, 255, 0.4); 
     box-shadow: none;
-    opacity: 0.5; /* 默认半透明，降低存在感不打扰绘图 */
+    opacity: 0.5; 
 }
 
 .excalidraw-wrapper.is-fullscreen .dg-excalidraw-fs-btn:hover {
     opacity: 1;
-    background-color: rgba(255, 255, 255, 0.1); /* 鼠标悬停时微微泛起白色高光 */
-    border-color: #ffffff; /* 线框变亮 */
+    background-color: rgba(255, 255, 255, 0.1); 
+    border-color: #ffffff; 
     transform: scale(1.05);
 }
