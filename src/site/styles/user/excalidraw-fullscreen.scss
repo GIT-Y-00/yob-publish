@@ -1,46 +1,52 @@
 /* 自定义：src/site/styles/user/excalidraw-fullscreen.scss */
 
 /**
- * Excalidraw Outer Fullscreen & Responsive Styles V6.6
+ * Excalidraw Outer Fullscreen & Responsive Styles V6.7
  * * 包含 V4.1 的全屏与 SVG 图标逻辑。
- * * [V6.6 终极修复] 废弃导致浏览器解析失败的 clamp() 乘法公式，改用原生 margin 物理占位，实现无瑕疵的中心拓宽。
+ * * [V6.7 终极降维打击] 避开浏览器对 clamp() 嵌套 calc() 的解析 Bug，
+ * * 直接使用 100vw - 750px (极限侧边栏宽度) 的绝对物理公式，辅以 100% width 彻底解决收缩塌陷问题。
  */
 
 /* =========================================
- * 1. 动态拓宽阅读区 (V6.6 物理占位版)
+ * 1. 动态拓宽阅读区 (V6.7 物理降维版)
  * ========================================= */
 
-/* 默认情况 (< 1400px)：侧边栏已收缩，直接放大全局最大宽度 */
+/* 默认情况 (< 1400px)：侧边栏已收缩，直接放大最大宽度 */
 body:has(.excalidraw-wrapper) {
     --dg-content-max-width: 1200px !important;
 }
 
-/* 宽屏情况 (>= 1400px)：左右已建立严格的对称墙壁 */
+/* 宽屏情况 (>= 1400px)：建立终极安全的自适应体系 */
 @media (min-width: 1400px) {
     .content:has(.excalidraw-wrapper),
     .markdown-preview-view:has(.excalidraw-wrapper),
     main:has(.excalidraw-wrapper),
     .page-wrapper:has(.excalidraw-wrapper) {
         
-        /* 核心修复 1：彻底解除所有宽度限制，让元素像水一样自由伸展 */
-        max-width: none !important;
-        width: auto !important;
+        /* 核心修复 1：强制铺满可用空间，绝不允许浏览器将其坍缩 (Shrink-to-fit) */
+        width: 100% !important;
         
-        /* 核心修复 2：利用我们在 global-layout.scss 中定义的全局对称变量作为两侧的防线。
-           避开乘法 Bug，直接让左右边距顶住侧边栏，再附加上 2rem 的呼吸空间。
-           浏览器会自动计算剩下的完美宽度！ */
-        margin-left: calc(var(--user-sidebar-width) + 2rem) !important;
-        margin-right: calc(var(--user-sidebar-width) + 2rem) !important;
+        /* 核心修复 2：降维打击的极简数学公式。
+           100vw 减去 750px（左墙350 + 右墙350 + 50安全缓冲）。
+           不管侧边栏当前是多少，750px 囊括了最坏情况，绝不重叠！
+           同时用 min() 锁死 1400px 的上限。 */
+        max-width: min(1400px, calc(100vw - 750px)) !important;
+        
+        /* 核心修复 3：使用最原始的 auto 进行绝对中心对齐 */
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
 }
 
 /* 确保动画流畅 */
 .content, .markdown-preview-view, main, .page-wrapper {
-    transition: max-width 0.3s ease, margin 0.3s ease;
+    transition: max-width 0.3s ease;
 }
 
 /* =========================================
- * 2. 非全屏状态的比例适配 (继承 V6.5)
+ * 2. 非全屏状态的比例适配
  * ========================================= */
 .excalidraw-wrapper:not(.is-fullscreen) {
     margin: 2rem 0 !important;
