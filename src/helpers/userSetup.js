@@ -1,17 +1,17 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V7.1
- * * [V7.1 终极修复] 重写 dataRegex，修复其无法匹配 JSON 双引号键名 ("link":) 导致的路由解析失效问题。
- * * 引入更强大的括号与后缀清洗器。
+ * Excalidraw React Injector V7.2
+ * * 包含 V7.1 的 Robust URL Resolver。
+ * * [V7.2 体验升级] 修改 renderEmbeddable 的层级探测逻辑，将 iframe 嵌套深度限制从 1 层放宽至 2 层。
  */
 
 console.error("=========================================");
-console.error("[V7.1 Log] userSetup.js loaded. Robust URL Resolver ENGAGED.");
+console.error("[V7.2 Log] userSetup.js loaded. Deep Nesting (Level 2) ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v7.1", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v7.2", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
@@ -46,25 +46,19 @@ function userEleventySetup(eleventyConfig) {
       // ==========================================
       // 阶段 C：终极路由解析器 (Robust URL Resolver)
       // ==========================================
-      // [V7.1 修复] 匹配 "link": "...", 'link': "...", link: "..." (兼容所有引号形式)
       const dataRegex = /(["']?)link\1\s*:\s*(["'])(.*?)\2/g;
       
       fixedContent = fixedContent.replace(dataRegex, function(matchedStr, keyQuote, valQuote, innerLink) {
         
-        // 排除空白、外部网络链接、页面锚点
         if (!innerLink || innerLink.startsWith('http') || innerLink.startsWith('#')) {
             return matchedStr;
         }
 
-        // 终极清洗：抹除所有可能的 Obsidian 左右括号（应对 [1234] 这种残缺情况）和别名符号
         let filename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
-        
-        // 终极清洗：剔除所有可能影响路由匹配的后缀名
         filename = filename.replace(/\.(md|svg|excalidraw)$/i, '');
 
         if (!filename) return matchedStr;
 
-        // 搜寻真实路径
         let realPath = linkMap[filename];
         if (!realPath) {
            const targetSlug = filename.toLowerCase().replace(/\s+/g, '-');
@@ -78,10 +72,8 @@ function userEleventySetup(eleventyConfig) {
         
         const finalPath = realPath ? realPath : `/${filename}/`;
         
-        // [构建期雷达]：可以在 Node 终端看到修复结果
-        console.log(`[V7.1 Radar] Fixed JSON Link: ${innerLink}  --->  ${finalPath}`);
+        console.log(`[V7.2 Radar] Fixed JSON Link: ${innerLink}  --->  ${finalPath}`);
 
-        // 原样包装回 JSON 属性，确保语法绝对安全
         return `${keyQuote}link${keyQuote}: ${valQuote}${finalPath}${valQuote}`;
       });
 
@@ -164,11 +156,15 @@ function userEleventySetup(eleventyConfig) {
             excalidrawProps.validateEmbeddable = function() { return true; };
             excalidrawProps.renderEmbeddable = function(node) { 
               if (node && node.link) { 
-                if (window.self !== window.top) {
+                
+                // [V7.2 核心更新] 放宽嵌套层级至两层
+                // 只有当自己不是顶层，且自己的父级也不是顶层时，才阻断渲染
+                if (window.top !== window.self && window.top !== window.parent) {
                   return React.createElement("div", { 
                     style: { display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", background: "var(--background-secondary, #f8f9fa)", border: "2px dashed #d1d5db", borderRadius: "8px" } 
                   }, React.createElement("a", { href: node.link, target: "_top", style: { color: "#3b82f6", textDecoration: "none", fontWeight: "bold", pointerEvents: "auto" } }, "🔗 深度嵌套，点击跳转"));
                 }
+                
                 return React.createElement(window.DgExcalidrawWrapper, { link: node.link, key: node.id });
               } 
               return null; 
