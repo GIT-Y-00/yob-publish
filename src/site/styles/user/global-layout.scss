@@ -1,17 +1,13 @@
 /* 自定义：src/site/styles/user/global-layout.scss */
 
 /**
- * Global Layout Tweaks V3.5 (Sidebar Color & Sharp Edges)
- * * 包含 V3.2 的文件树响应式靠左。
- * * 包含 V3.4 的侧边栏贴边逻辑与按钮悬浮。
- * * [V3.5] 移除所有圆角，指定精确的底色 rgb(30,35,47)。
+ * Global Layout Tweaks V6.4
+ * * 包含 V3.5 的侧边栏 UI 与贴边。
+ * * [V6.4 修复] 解决左侧 filetree-wrapper 变宽后，内部内容宽度死板导致的空白异常。
  */
 
-/* =========================================
- * 宽屏专属排版 (> 1400px)
- * ========================================= */
 @media (min-width: 1400px) {
-    /* 1. 文件树靠左贴边 */
+    /* 1. 文件树最外层容器靠左贴边并加宽 */
     .filetree-wrapper {
         justify-content: flex-start !important;
         margin-left: 0 !important;
@@ -22,14 +18,18 @@
         flex-grow: 0 !important;
     }
 
+    /* [V6.4 核心修复] 强制让内部的导航树填满变宽后的容器 */
+    .filetree-sidebar {
+        width: 100% !important;
+        max-width: none !important; 
+    }
+
     /* 2. Sidebar 靠右贴边 */
     .sidebar {
         left: auto !important; 
         right: 0 !important;   
         top: 0 !important;
         height: 100vh !important;
-        
-        /* [V3.5] 确保大屏贴边时绝对没有圆角 */
         border-radius: 0 !important; 
     }
 }
@@ -38,32 +38,25 @@
  * 全局样式 (PC与手机共用)
  * ========================================= */
 
-/* Sidebar 底色与过渡动画 */
 .sidebar {
-    /* [V3.5] 精确的底色设定 */
     background-color: rgb(30, 35, 47) !important;
     padding: 1.5rem 1rem !important;
-    
-    /* [V3.5] 移除基础层级的圆角 */
     border-radius: 0 !important;
     box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15) !important;
     transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* Sidebar 收起状态 */
 .sidebar.is-collapsed {
     opacity: 0 !important;
     pointer-events: none !important;
     transform: translateX(20px) scale(0.98) !important;
 }
 
-/* 右下角悬浮按钮 */
 .dg-sidebar-toggle {
     position: fixed;
     bottom: 30px;
     right: 30px;
     z-index: 9999;
-    
     width: 48px;
     height: 48px;
     border-radius: 50%;

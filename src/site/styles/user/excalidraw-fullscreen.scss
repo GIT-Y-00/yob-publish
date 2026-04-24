@@ -1,39 +1,42 @@
 /* 自定义：src/site/styles/user/excalidraw-fullscreen.scss */
 
 /**
- * Excalidraw Outer Fullscreen & Responsive Styles V6.3
- * * 包含 V4.1 的全屏与 SVG 图标逻辑。
- * * [V6.3 终极修复] 废弃暴力的 margin 重写，利用全局 CSS 变量注入，完美继承原主题的避让算法。
+ * Excalidraw Outer Fullscreen & Responsive Styles V6.4
+ * * [V6.4 修复] 引入 min() 动态函数，解决 1400px~2000px 区间由于放宽至 1200px 导致的挤压重叠问题。
  */
 
 /* =========================================
- * 1. 动态拓宽阅读区 (V6.3 变量注入法)
+ * 1. 动态拓宽阅读区 (V6.4 动态避让法)
  * ========================================= */
-/* 当页面存在 Excalidraw 时，直接修改全局的阅读区最大宽度变量。
-   我们将默认的 700px 提升到 1200px (一个极佳的宽屏阅读尺寸)。
-   因为没有覆盖任何 margin 属性，主题原生的侧边栏避让算法将完美继续生效！ */
+
+/* 默认情况 (手机/平板 < 1400px)：侧边栏已收缩，放心放宽 */
 body:has(.excalidraw-wrapper) {
     --dg-content-max-width: 1200px !important;
 }
 
-/* 确保正文容器能平滑过渡宽度变化 */
+/* 宽屏情况 (>= 1400px)：两侧侧边栏处于展开且 Fixed 状态。
+   此时如果强行给定一个固定宽度，在 1400~1900px 的屏幕上必然会撞上两侧。
+   解决方案：取 "绝对理想宽度 1400px" 与 "屏幕安全剩余空间" 中的最小值！ */
+@media (min-width: 1400px) {
+    body:has(.excalidraw-wrapper) {
+        /* 计算公式：100vw - 左侧树动态宽度 - 右侧固定宽度 - 4rem的安全内边距 */
+        --dg-content-max-width: min(1400px, calc(100vw - clamp(250px, 20vw, 350px) - var(--dg-sidebar-max-width, 350px) - 4rem)) !important;
+    }
+}
+
 .content, .markdown-preview-view, main, .page-wrapper {
     transition: max-width 0.3s ease;
 }
 
 /* =========================================
- * 2. 非全屏状态的比例适配 (V6.3)
+ * 2. 非全屏状态的比例适配
  * ========================================= */
 .excalidraw-wrapper:not(.is-fullscreen) {
-    /* 取消左右边距，使其自然填满扩宽后的 1200px 容器 */
     margin: 2rem 0 !important;
     width: 100% !important;
-    
-    /* 视口比例高度，手机兜底 400px，大屏封顶 1200px */
     height: 65vh !important; 
     min-height: 400px !important; 
     max-height: 1200px !important; 
-    
     position: relative;
     border-radius: 12px !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
@@ -91,7 +94,6 @@ body:has(.excalidraw-wrapper) {
     border: none !important;
 }
 
-/* 全屏状态下的退出按钮：极简线条白色 */
 .excalidraw-wrapper.is-fullscreen .dg-excalidraw-fs-btn {
     position: fixed;
     top: 20px;
