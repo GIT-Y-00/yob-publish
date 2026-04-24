@@ -65,14 +65,14 @@
     /* 极简透明设计 */
     background-color: transparent; 
     color: #ffffff; /* 纯白 X 图标 */
-    border: 1px solid rgba(255, 255, 255, 0.4); /* 半透明白色线框 */
+    border: 1px solid rgba(255, 255, 255, 1); /* 白色线框 */
     box-shadow: none;
     opacity: 0.5; /* 默认半透明，降低存在感不打扰绘图 */
 }
 
 .excalidraw-wrapper.is-fullscreen .dg-excalidraw-fs-btn:hover {
     opacity: 1;
-    background-color: rgba(255, 255, 255, 0.1); /* 鼠标悬停时微微泛起白色高光 */
+    background-color: rgba(255, 255, 255, 1); /* 鼠标悬停时微微泛起白色高光 */
     border-color: #ffffff; /* 线框变亮 */
     transform: scale(1.05);
 }
