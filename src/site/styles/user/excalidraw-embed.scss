@@ -1,36 +1,49 @@
 /**
- * Excalidraw Embedded Iframe Styles v2.0
- * 作用域：仅在页面被判定为 iframe 内部时生效。
+ * Excalidraw Embedded Iframe Styles v2.5 (Scroll Fix Edition)
+ * * 修复由于布局重写导致的内部容器劫持滚动条、Window 焦点无法响应滚轮的问题。
  */
 
-/* 只要 html 带有这个标签，内部的所有布局规则全部重写 */
 html.is-in-iframe {
+    /* [V2.5 核心修复 1]：强制根节点成为唯一的滚动条持有者 */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: 100% !important;
     
-    /* 1. 元素隐身衣：隐藏你提到的要素，以及可能存在的其他框架要素 */
-    .filetree-wrapper,  /* 左侧文件树 */
-    .sidebar,           /* 右侧大纲/侧边栏 */
-    .site-header,       /* 顶部导航栏 (根据常见主题盲猜) */
+    body {
+        background-color: transparent !important;
+        /* 解除 body 层面的隐藏滚动限制 */
+        overflow: visible !important;
+        height: auto !important;
+        min-height: 100% !important;
+        margin: 0;
+    }
+    
+    /* 1. 元素隐身衣：隐藏多余框架要素 */
+    .filetree-wrapper,
+    .sidebar,
+    .site-header,
     header,
     footer,
     nav {
         display: none !important;
     }
 
-    /* 2. 解除束缚：让正文区域不再居中受限，直接占满 100% 空间 */
+    /* 2. 解除束缚与滚动权收归 */
     .content,
     main,
-    .page-content {
+    .page-content,
+    #app /* 兼容部分单页应用打包容器 */ {
         margin: 0 !important;
-        padding: 1rem !important; /* 保留一点点内边距，让文字不贴边 */
+        padding: 1rem 1.5rem !important; 
         max-width: none !important;
         width: 100% !important;
-        /* 如果原主题有阴影或多余背景，一并去除 */
         box-shadow: none !important; 
         border: none !important;
-    }
-
-    /* 3. 背景融合：让 iframe 内部背景透明，完全融入 Excalidraw 的画布颜色 */
-    body {
-        background-color: transparent !important;
+        
+        /* [V2.5 核心修复 2]：剥夺内部容器的滚动权，强制将其内容撑开，把滚动事件交还给 Window */
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+        position: static !important;
     }
 }
