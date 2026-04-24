@@ -1,26 +1,53 @@
 /**
- * Excalidraw React Injector v1.1
- * * 核心突破：摒弃 DOM 监听，直接在构建时拦截 React.createElement 注入 renderEmbeddable API。
- * * 感谢用户的精妙构思！
+ * Excalidraw React Injector v1.2
+ * * 核心升级：动态路由解析 (Dynamic Route Resolution)。
+ * * 通过在 HTML 中全盘扫描 Digital Garden 自动生成的隐藏 <a class="internal-link"> 节点，
+ * * 构建 "文件名 -> 真实绝对路径" 的映射字典，彻底解决硬编码导致的路径 404 错误。
  */
 
 console.error("=========================================");
-console.error("[v1.1 Log] userSetup.js is active. React Interceptor Mode ENGAGED.");
+console.error("[v1.2 Log] userSetup.js is active. Dynamic Route Radar ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v1.1", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v1.2", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
 
       // ==========================================
-      // 阶段 A：清洗数据，生成绝对路径 (沿用 v1.0 逻辑)
+      // 阶段 A.0：构建真实路径映射字典 (The Map Builder)
+      // ==========================================
+      const linkMap = {};
+      // 扫描所有 href 以 / 开头的 <a> 标签
+      const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+      let match;
+      
+      while ((match = anchorRegex.exec(content)) !== null) {
+        const href = match[1]; // 例如: /Excalidraw/testnew.excalidraw/ 或 /Vault/1234/
+        // 清除内部可能附带的 HTML 标签（如 SVG 图标），并去除首尾空格
+        const text = match[2].replace(/<[^>]+>/g, '').trim(); 
+        
+        if (text) {
+           linkMap[text] = href; // 字典 1: 以显示文本（通常是文件名或别名）作为键
+        }
+        
+        // 字典 2: 提取 URL 的最后一段作为 slug 备用，防止别名不同导致匹配失败
+        const parts = href.split('/').filter(p => p);
+        if (parts.length > 0) {
+           const slug = decodeURIComponent(parts[parts.length - 1]);
+           linkMap[slug] = href;
+        }
+      }
+
+      // ==========================================
+      // 阶段 A.1：清洗数据，查字典注入真实路径
       // ==========================================
       const dataRegex = /\blink\s*:\s*(["'])(.*?)\1/g;
-      fixedContent = fixedContent.replace(dataRegex, function(match, quote, innerLink) {
+      fixedContent = fixedContent.replace(dataRegex, function(matchedStr, quote, innerLink) {
+        // 过滤非内部链接
         if (!innerLink.includes('[') && !innerLink.includes(']') && !innerLink.includes('.md')) {
-          return match;
+          return matchedStr;
         }
 
         let filename = "";
@@ -28,33 +55,47 @@ function userEleventySetup(eleventyConfig) {
         if (mdLinkMatch) {
             filename = mdLinkMatch[1];
         } else {
+            // 提取双括号内的文件名
             filename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
         }
 
-        const fixedUrl = `/Vault/${filename}/`;
-        console.error(`[v1.1 Log] Fixed internal link: ${fixedUrl}`);
+        // 核心突破：去雷达字典里查找正确的路径！
+        let realPath = linkMap[filename];
+        
+        // 如果精确匹配没找到，尝试忽略大小写和空格匹配 slug
+        if (!realPath) {
+           const targetSlug = filename.toLowerCase().replace(/\s+/g, '-');
+           for (const key in linkMap) {
+               if (key.toLowerCase().replace(/\s+/g, '-') === targetSlug) {
+                   realPath = linkMap[key];
+                   break;
+               }
+           }
+        }
+
+        // 如果字典里真的没有（说明文件可能未公开），则兜底使用根目录斜杠
+        const fixedUrl = realPath ? realPath : `/${filename}/`;
+        
+        console.error(`[v1.2 Log] Resolved: ${filename} -> ${fixedUrl}`);
+        
         return `link:${quote}${fixedUrl}${quote}`;
       });
 
       // ==========================================
-      // 阶段 B：拦截 React 实例化并注入 renderEmbeddable 
+      // 阶段 B：拦截 React 实例化并注入完美交互 Iframe 
+      // (完全保留了 v1.1 验证过的优秀代码)
       // ==========================================
-      // 匹配 Digital Garden 编译出的 Excalidraw 挂载代码
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
       if (reactInitRegex.test(fixedContent)) {
-        console.error(`[v1.1 Log] React Component matched in ${outputPath}! Injecting renderEmbeddable wrapper...`);
-        
         fixedContent = fixedContent.replace(
           reactInitRegex,
           `((excalidrawProps) => {
-            // 定义防污染的全局 React 组件
             if (!window.DgExcalidrawWrapper) {
               window.DgExcalidrawWrapper = function(props) {
                 const [isInteractive, setIsInteractive] = React.useState(false);
                 const iframeRef = React.useRef(null);
 
-                // 处理焦点逻辑，防止 iframe 吃掉画布的快捷键
                 React.useEffect(() => {
                   if (isInteractive && iframeRef.current) {
                     iframeRef.current.focus();
@@ -102,11 +143,9 @@ function userEleventySetup(eleventyConfig) {
               };
             }
 
-            // 将官方 API 挂载到 Props 上
             excalidrawProps.validateEmbeddable = function() { return true; };
             excalidrawProps.renderEmbeddable = function(node) { 
               if (node && node.link) { 
-                // 嵌套保险机制，防止 iframe 无限套娃崩溃
                 if (window.self !== window.top) {
                   return React.createElement("div", { 
                     style: { display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", background: "var(--background-secondary, #f8f9fa)", border: "2px dashed #d1d5db", borderRadius: "8px" } 
@@ -120,11 +159,6 @@ function userEleventySetup(eleventyConfig) {
             return React.createElement(ExcalidrawLib.Excalidraw, excalidrawProps);
           })({`
         );
-      } else {
-        // 如果页面包含 excalidraw 数据，但没找到注入点
-        if (fixedContent.includes("ExcalidrawLib")) {
-          console.error(`[v1.1 Log WARNING] Found Excalidraw in ${outputPath}, but React init regex failed to match!`);
-        }
       }
 
       return fixedContent;
