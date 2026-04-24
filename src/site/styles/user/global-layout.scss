@@ -1,0 +1,29 @@
+/**
+ * Global Layout Tweaks V3.1
+ * * 目标：打破宽屏下的文件树向中心靠拢逻辑，强制其停靠在屏幕左边缘。
+ */
+
+@media (min-width: 1400px) {
+    /* 强制重写大屏幕下的文件树包裹层布局 */
+    .filetree-wrapper {
+        /* 将内容强制推向左侧起始点 */
+        justify-content: flex-start !important;
+        
+        /* 消除可能存在的左侧自动外边距 */
+        margin-left: 0 !important;
+        
+        /* 给左侧保留一点优雅的呼吸空间，不至于文字完全贴死屏幕物理边缘 */
+        padding-left: 1rem !important; 
+    }
+
+    /* * 【可选预判修复】
+     * 如果主题的最外层（通常是 body 或 .page-wrapper）设置了整体居中，
+     * 上面的代码只会让文件树在“它自己的格子里”靠左。
+     * 如果上面的代码部署后没有变化，说明是整体被居中了，请解除下方代码的注释：
+     */
+    /*
+    body {
+        justify-content: flex-start !important;
+    }
+    */
+}
