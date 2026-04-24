@@ -1,16 +1,15 @@
 /**
- * Excalidraw React Injector v1.2
- * * 核心升级：动态路由解析 (Dynamic Route Resolution)。
- * * 通过在 HTML 中全盘扫描 Digital Garden 自动生成的隐藏 <a class="internal-link"> 节点，
- * * 构建 "文件名 -> 真实绝对路径" 的映射字典，彻底解决硬编码导致的路径 404 错误。
+ * Excalidraw React Injector v2.1
+ * * 核心体验升级：修复交互开启后的“滚动焦点”问题。
+ * * 解决 iframe DOM 节点获取焦点但内部 contentWindow 未获取焦点导致无法直接滚轮滚动的体验痛点。
  */
 
 console.error("=========================================");
-console.error("[v1.2 Log] userSetup.js is active. Dynamic Route Radar ENGAGED.");
+console.error("[v2.1 Log] userSetup.js is active. Auto-focus mechanism ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v1.2", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v2.1", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
@@ -19,20 +18,17 @@ function userEleventySetup(eleventyConfig) {
       // 阶段 A.0：构建真实路径映射字典 (The Map Builder)
       // ==========================================
       const linkMap = {};
-      // 扫描所有 href 以 / 开头的 <a> 标签
       const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
       let match;
       
       while ((match = anchorRegex.exec(content)) !== null) {
-        const href = match[1]; // 例如: /Excalidraw/testnew.excalidraw/ 或 /Vault/1234/
-        // 清除内部可能附带的 HTML 标签（如 SVG 图标），并去除首尾空格
+        const href = match[1];
         const text = match[2].replace(/<[^>]+>/g, '').trim(); 
         
         if (text) {
-           linkMap[text] = href; // 字典 1: 以显示文本（通常是文件名或别名）作为键
+           linkMap[text] = href; 
         }
         
-        // 字典 2: 提取 URL 的最后一段作为 slug 备用，防止别名不同导致匹配失败
         const parts = href.split('/').filter(p => p);
         if (parts.length > 0) {
            const slug = decodeURIComponent(parts[parts.length - 1]);
@@ -45,7 +41,6 @@ function userEleventySetup(eleventyConfig) {
       // ==========================================
       const dataRegex = /\blink\s*:\s*(["'])(.*?)\1/g;
       fixedContent = fixedContent.replace(dataRegex, function(matchedStr, quote, innerLink) {
-        // 过滤非内部链接
         if (!innerLink.includes('[') && !innerLink.includes(']') && !innerLink.includes('.md')) {
           return matchedStr;
         }
@@ -55,14 +50,11 @@ function userEleventySetup(eleventyConfig) {
         if (mdLinkMatch) {
             filename = mdLinkMatch[1];
         } else {
-            // 提取双括号内的文件名
             filename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
         }
 
-        // 核心突破：去雷达字典里查找正确的路径！
         let realPath = linkMap[filename];
         
-        // 如果精确匹配没找到，尝试忽略大小写和空格匹配 slug
         if (!realPath) {
            const targetSlug = filename.toLowerCase().replace(/\s+/g, '-');
            for (const key in linkMap) {
@@ -73,17 +65,12 @@ function userEleventySetup(eleventyConfig) {
            }
         }
 
-        // 如果字典里真的没有（说明文件可能未公开），则兜底使用根目录斜杠
         const fixedUrl = realPath ? realPath : `/${filename}/`;
-        
-        console.error(`[v1.2 Log] Resolved: ${filename} -> ${fixedUrl}`);
-        
         return `link:${quote}${fixedUrl}${quote}`;
       });
 
       // ==========================================
       // 阶段 B：拦截 React 实例化并注入完美交互 Iframe 
-      // (完全保留了 v1.1 验证过的优秀代码)
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
@@ -98,8 +85,22 @@ function userEleventySetup(eleventyConfig) {
 
                 React.useEffect(() => {
                   if (isInteractive && iframeRef.current) {
-                    iframeRef.current.focus();
+                    // [V2.1 核心修复]：开启交互后，强制将焦点穿透进 iframe 的内部 Window
+                    // 给浏览器 50ms 的时间去移除 pointer-events 的遮罩层并完成重绘
+                    setTimeout(() => {
+                      try {
+                        if (iframeRef.current.contentWindow) {
+                          iframeRef.current.contentWindow.focus();
+                        }
+                      } catch (e) {
+                        // 忽略可能的同源策略安全警告拦截
+                      }
+                      // 兜底聚焦外层 DOM
+                      iframeRef.current.focus();
+                    }, 50);
+
                   } else if (!isInteractive) {
+                    // 关闭交互时，回收焦点给主窗口的画布
                     if (document.activeElement === iframeRef.current) {
                       iframeRef.current.blur();
                     }
@@ -112,6 +113,7 @@ function userEleventySetup(eleventyConfig) {
                 },
                   React.createElement("button", {
                     onPointerDown: function(e) { 
+                      // 阻止按钮自身抢夺焦点，确保焦点完美落入 iframe
                       e.preventDefault(); 
                       e.stopPropagation(); 
                       setIsInteractive(!isInteractive); 
