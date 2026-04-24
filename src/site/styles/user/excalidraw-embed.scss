@@ -1,0 +1,33 @@
+/**
+ * Excalidraw Iframe Embed Styles v1.0
+ */
+
+.excalidraw-iframe-wrapper {
+    /* 强行接管父级盒子的样式 */
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 8px; /* 圆角让内嵌网页看起来更像卡片 */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: var(--background-primary, #ffffff);
+    z-index: 100; 
+    pointer-events: auto !important; /* 核心：允许鼠标在 iframe 内滚动和点击 */
+}
+
+.excalidraw-md-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    background: transparent;
+}
+
+/* 优化内嵌网页的滚动条，避免过于突兀 */
+.excalidraw-md-iframe::-webkit-scrollbar {
+    width: 6px;
+}
+.excalidraw-md-iframe::-webkit-scrollbar-thumb {
+    background-color: var(--text-muted, #ccc);
+    border-radius: 4px;
+}
