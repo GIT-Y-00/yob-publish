@@ -1,35 +1,38 @@
 /**
- * Excalidraw React Injector v2.1
- * * 继承 v1.2 的动态路由字典。
- * * 核心升级：修复 Iframe 交互体验。在开启交互时，利用同源优势强行注入焦点 (contentWindow.focus())，
- * * 解决必须先点击/拖拽滚动条才能使用鼠标滚轮滚动页面的 Bug。
+ * Excalidraw React Injector v1.2
+ * * 核心升级：动态路由解析 (Dynamic Route Resolution)。
+ * * 通过在 HTML 中全盘扫描 Digital Garden 自动生成的隐藏 <a class="internal-link"> 节点，
+ * * 构建 "文件名 -> 真实绝对路径" 的映射字典，彻底解决硬编码导致的路径 404 错误。
  */
 
 console.error("=========================================");
-console.error("[v2.1 Log] userSetup.js is active. Focus Management Patch Applied.");
+console.error("[v1.2 Log] userSetup.js is active. Dynamic Route Radar ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v2.1", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v1.2", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
 
       // ==========================================
-      // 阶段 A.0：构建真实路径映射字典
+      // 阶段 A.0：构建真实路径映射字典 (The Map Builder)
       // ==========================================
       const linkMap = {};
+      // 扫描所有 href 以 / 开头的 <a> 标签
       const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
       let match;
       
       while ((match = anchorRegex.exec(content)) !== null) {
-        const href = match[1];
+        const href = match[1]; // 例如: /Excalidraw/testnew.excalidraw/ 或 /Vault/1234/
+        // 清除内部可能附带的 HTML 标签（如 SVG 图标），并去除首尾空格
         const text = match[2].replace(/<[^>]+>/g, '').trim(); 
         
         if (text) {
-           linkMap[text] = href;
+           linkMap[text] = href; // 字典 1: 以显示文本（通常是文件名或别名）作为键
         }
         
+        // 字典 2: 提取 URL 的最后一段作为 slug 备用，防止别名不同导致匹配失败
         const parts = href.split('/').filter(p => p);
         if (parts.length > 0) {
            const slug = decodeURIComponent(parts[parts.length - 1]);
@@ -42,6 +45,7 @@ function userEleventySetup(eleventyConfig) {
       // ==========================================
       const dataRegex = /\blink\s*:\s*(["'])(.*?)\1/g;
       fixedContent = fixedContent.replace(dataRegex, function(matchedStr, quote, innerLink) {
+        // 过滤非内部链接
         if (!innerLink.includes('[') && !innerLink.includes(']') && !innerLink.includes('.md')) {
           return matchedStr;
         }
@@ -51,11 +55,14 @@ function userEleventySetup(eleventyConfig) {
         if (mdLinkMatch) {
             filename = mdLinkMatch[1];
         } else {
+            // 提取双括号内的文件名
             filename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
         }
 
+        // 核心突破：去雷达字典里查找正确的路径！
         let realPath = linkMap[filename];
         
+        // 如果精确匹配没找到，尝试忽略大小写和空格匹配 slug
         if (!realPath) {
            const targetSlug = filename.toLowerCase().replace(/\s+/g, '-');
            for (const key in linkMap) {
@@ -66,12 +73,17 @@ function userEleventySetup(eleventyConfig) {
            }
         }
 
+        // 如果字典里真的没有（说明文件可能未公开），则兜底使用根目录斜杠
         const fixedUrl = realPath ? realPath : `/${filename}/`;
+        
+        console.error(`[v1.2 Log] Resolved: ${filename} -> ${fixedUrl}`);
+        
         return `link:${quote}${fixedUrl}${quote}`;
       });
 
       // ==========================================
-      // 阶段 B：拦截 React 实例化并注入完美交互 Iframe (新增焦点管理)
+      // 阶段 B：拦截 React 实例化并注入完美交互 Iframe 
+      // (完全保留了 v1.1 验证过的优秀代码)
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
@@ -84,26 +96,10 @@ function userEleventySetup(eleventyConfig) {
                 const [isInteractive, setIsInteractive] = React.useState(false);
                 const iframeRef = React.useRef(null);
 
-                // 【V2.1 核心修复】增强的焦点管理钩子
                 React.useEffect(() => {
                   if (isInteractive && iframeRef.current) {
-                    // 1. 聚焦 iframe 标签本身
                     iframeRef.current.focus();
-                    
-                    // 2. 跨越边界，强制聚焦 iframe 内部的真实网页窗口和 Body
-                    try {
-                      const cw = iframeRef.current.contentWindow;
-                      if (cw) {
-                        cw.focus();
-                        if (cw.document && cw.document.body) {
-                          cw.document.body.focus();
-                        }
-                      }
-                    } catch(e) {
-                      console.error('[v2.1 Log] Focus injection blocked', e);
-                    }
                   } else if (!isInteractive) {
-                    // 关闭交互时，将焦点交还给主页面
                     if (document.activeElement === iframeRef.current) {
                       iframeRef.current.blur();
                     }
