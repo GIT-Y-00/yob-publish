@@ -1,17 +1,16 @@
 /* 自定义：src/site/styles/user/excalidraw-embed.scss */
 
 /**
- * Iframe Embed Styles (The Floating Card) V7.5
+ * Iframe Embed Styles (The Smart Card) V7.6
  * * [集成 V2.11] 强制关闭平滑滚动，确保 JS 高频位移指令零延迟。
- * * [V7.5 微调] 放弃绝对贴边铺满，在四周保留 0.5rem 的等宽呼吸边距，
- * * 并配合 calc() 严防滚动条溢出，恢复微圆角提升精致感。
+ * * [V7.6 核心强化] 引入 CSS 逻辑分支，完美区分“纯MD内嵌”与“画板内嵌”，
+ * * 为两者分别赋予完美的 0.5rem 悬浮卡片质感，且绝不冲突！
  */
 
 /* =========================================
- * 1. 环境感知：当网页作为 Iframe 被嵌入时
+ * 1. 基础环境感知与纯净隐身
  * ========================================= */
 html.is-in-iframe {
-    /* [V2.11 核心传承] 强制取消平滑滚动 */
     scroll-behavior: auto !important;
 
     body {
@@ -19,51 +18,73 @@ html.is-in-iframe {
         background-color: transparent !important;
         margin: 0 !important;
         padding: 0 !important;
-        overflow: hidden !important; /* 彻底封杀边距可能引发的次级滚动条 */
+        overflow: hidden !important; /* 封杀最外层滚动条，防止溢出 */
     }
 
-    /* 2. 纯净隐身：彻底摘除所有导航、侧边栏和页眉页脚 */
-    .filetree-wrapper,
-    .sidebar,
-    .sidebar-left,
-    .sidebar-right,
-    .site-header,
-    header,
-    footer,
-    nav {
+    .filetree-wrapper, .sidebar, .sidebar-left, .sidebar-right, .site-header, header, footer, nav {
         display: none !important;
     }
 
-    /* 3. 容器拉伸：确保 MD 文本区占满 Iframe */
-    .content, 
-    .markdown-preview-view,
-    main,
-    .page-wrapper {
-        margin: 0 !important;
-        padding: 0 !important;
+    /* 默认清除正文容器的宽度限制 */
+    .content, .markdown-preview-view, main, .page-wrapper {
         max-width: none !important;
         width: 100% !important;
-        min-height: 100vh !important;
     }
+}
 
-    /* 4. [V7.5 视觉微调] Excalidraw 悬浮卡片式内嵌 */
-    .excalidraw-wrapper {
-        /* 四周等宽 0.5rem 的呼吸边距 */
-        margin: 0.5rem !important; 
-        
-        /* 核心物理计算：总宽高必须精准扣除上下左右各 0.5rem (合计 1rem) 的占用空间 */
-        height: calc(100vh - 1rem) !important; 
-        min-height: calc(100vh - 1rem) !important;
-        max-height: none !important;
-        
+/* =========================================
+ * 2. 平行宇宙 A：嵌入的是【纯 MD 文件】
+ * ========================================= */
+/* 侦测条件：Iframe 中不包含 excalidraw 画板 */
+html.is-in-iframe:not(:has(.excalidraw-wrapper)) {
+    
+    .content, main, .page-wrapper {
+        /* 化身为悬浮卡片 */
+        margin: 0.5rem auto !important; 
+        height: calc(100vh - 1rem) !important;
         width: calc(100vw - 1rem) !important;
-        max-width: none !important;
+        box-sizing: border-box !important;
         
-        /* 既然不再贴边，加回微小的圆角和一层极淡的边框，打造“卡片悬浮”质感 */
+        /* 恢复精致外观 */
         border-radius: 8px !important;
         border: 1px solid var(--background-modifier-border, rgba(100,100,100,0.15)) !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+        background-color: var(--background-primary) !important;
         
+        /* 核心逻辑：允许长篇 MD 文本在卡片内部自然滚动，而不触发外层滚动 */
+        overflow-y: auto !important;
+        padding: 1.5rem 2rem !important; /* 给文字充足的呼吸感阅读边距 */
+    }
+}
+
+/* =========================================
+ * 3. 平行宇宙 B：嵌入的是【Excalidraw 画板】
+ * ========================================= */
+/* 侦测条件：Iframe 中包含 excalidraw 画板 */
+html.is-in-iframe:has(.excalidraw-wrapper) {
+    
+    /* 正文容器化作隐形人，剥除所有内外边距与背景色，给画板让路 */
+    .content, main, .page-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: transparent !important;
+        overflow: hidden !important; 
+    }
+
+    /* 画板容器接管卡片特效 */
+    .excalidraw-wrapper {
+        margin: 0.5rem auto !important; 
+        height: calc(100vh - 1rem) !important;
+        min-height: calc(100vh - 1rem) !important;
+        max-height: none !important;
+        width: calc(100vw - 1rem) !important;
+        max-width: none !important;
+        box-sizing: border-box !important;
+        
+        /* 悬浮卡片外观 */
+        border-radius: 8px !important;
+        border: 1px solid var(--background-modifier-border, rgba(100,100,100,0.15)) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
         background-color: transparent !important;
     }
 }
