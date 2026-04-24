@@ -1,0 +1,25 @@
+/**
+ * Excalidraw Embedded Iframe Styles v2.8
+ * * 根据 V3.0 探针结果：坚决保护 BODY 的原生滚动上下文。
+ * * 仅执行 display: none，绝对不修改宽、高、margin 或 overflow。
+ */
+
+html.is-in-iframe {
+    
+    /* 1. 元素隐身衣：精准切除侧边栏与导航 */
+    .filetree-wrapper,
+    .sidebar,
+    .sidebar-left,
+    .sidebar-right,
+    .site-header,
+    header,
+    footer,
+    nav {
+        display: none !important;
+    }
+
+    /* 2. 背景融合：让 iframe 内部背景透明 */
+    body {
+        background-color: transparent !important;
+    }
+}

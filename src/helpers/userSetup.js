@@ -1,15 +1,15 @@
 /**
- * Excalidraw React Injector v2.4 (Stable UI Release)
- * * 修复 V2.3 中由于同时绑定 PointerDown 和 Click 导致的双重触发 (Double-toggle) 闪烁 Bug。
- * * 确立 onPointerDown 为唯一的交互接管事件。
+ * Excalidraw React Injector v2.8
+ * * 修复焦点横跳 Bug：剔除互斥的外部 DOM 焦点抢夺。
+ * * 精准对标 V3.0 探针发现的滚动祖先 (BODY)。
  */
 
 console.error("=========================================");
-console.error("[v2.4 Log] userSetup.js loaded. Ghost-click fix applied.");
+console.error("[v2.8 Log] userSetup.js loaded. Pure Focus Engine ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v2.4", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v2.8", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
@@ -73,17 +73,23 @@ function userEleventySetup(eleventyConfig) {
                   setIsInteractive(willBeInteractive); 
 
                   if (willBeInteractive && iframeRef.current) {
+                      let focusSuccess = false;
                       try {
                           const cw = iframeRef.current.contentWindow;
                           if (cw) {
-                              if (cw.document && cw.document.documentElement) {
-                                  cw.document.documentElement.setAttribute('tabindex', '-1');
-                                  cw.document.documentElement.focus({ preventScroll: true });
-                              }
+                              // [V2.8 修复]：直接将焦点给到内部 Window 和 Body，绝不反向聚焦外部 DOM
                               cw.focus();
+                              if (cw.document && cw.document.body) {
+                                  cw.document.body.focus({ preventScroll: true });
+                              }
+                              focusSuccess = true;
                           }
                       } catch (err) {}
-                      iframeRef.current.focus();
+                      
+                      // 只有在同源策略拦截，无法进入内部时，才兜底给外部 iframe 标签
+                      if (!focusSuccess) {
+                          iframeRef.current.focus();
+                      }
                   } else if (!willBeInteractive) {
                       if (document.activeElement === iframeRef.current) {
                           iframeRef.current.blur();
@@ -96,7 +102,6 @@ function userEleventySetup(eleventyConfig) {
                   style: { position: "relative", width: "100%", height: "100%", boxSizing: "border-box", pointerEvents: "none" }
                 },
                   React.createElement("button", {
-                    // [V2.4 修复]：只使用 onPointerDown，彻底杜绝 onClick 引起的双重触发闪烁
                     onPointerDown: toggleInteraction,
                     style: { 
                       position: "absolute", top: "8px", right: "8px", zIndex: 50, 

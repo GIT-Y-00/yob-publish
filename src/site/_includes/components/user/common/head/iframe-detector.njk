@@ -1,47 +1,9 @@
 <script>
 (function() {
+    // 核心判断：如果处于内嵌状态
     if (window !== window.top) {
         document.documentElement.classList.add('is-in-iframe');
-        console.error("[v3.0 Probe] Iframe environment loaded.");
-
-        // 探针 1：页面高度扫描（查明页面是否真的有滚动条）
-        setTimeout(() => {
-            const htmlScroll = document.documentElement.scrollHeight;
-            const htmlClient = document.documentElement.clientHeight;
-            const bodyScroll = document.body.scrollHeight;
-            
-            console.error(`[v3.0 Probe] HTML Height: ${htmlScroll}px (Visible: ${htmlClient}px)`);
-            console.error(`[v3.0 Probe] BODY Height: ${bodyScroll}px`);
-            
-            if (htmlScroll > htmlClient) {
-                console.error("[v3.0 Probe] Result: 页面具备物理滚动条件。");
-            } else {
-                console.error("[v3.0 Probe] Result: 警告！页面高度未溢出，根本没有滚动条！");
-            }
-        }, 1500);
-
-        // 探针 2：焦点监听（查明 userSetup.js 的焦点有没有送达）
-        window.addEventListener('focus', () => console.error("[v3.0 Probe] Iframe Window GAINED focus!"), { capture: true });
-        window.addEventListener('blur', () => console.error("[v3.0 Probe] Iframe Window LOST focus!"), { capture: true });
-
-        // 探针 3：滚轮事件追踪（核心查杀：鼠标滚轮信号进来了没有？）
-        window.addEventListener('wheel', (e) => {
-            console.error("[v3.0 Probe] WHEEL EVENT DETECTED inside iframe!");
-            
-            // 追踪滚轮事件打在了哪个元素上
-            let el = e.target;
-            console.error(`[v3.0 Probe] Wheel hit target: <${el.tagName} class="${el.className}">`);
-            
-            // 向上追溯，看看哪个祖先容器负责滚动
-            while (el && el !== document) {
-                const style = window.getComputedStyle(el);
-                if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                    console.error(`[v3.0 Probe] Found Scrollable Ancestor: <${el.tagName} class="${el.className}">`);
-                    break;
-                }
-                el = el.parentElement;
-            }
-        }, { passive: true });
+        console.log("[v2.8] Iframe mode activated. Hiding external UI.");
     }
 })();
 </script>
