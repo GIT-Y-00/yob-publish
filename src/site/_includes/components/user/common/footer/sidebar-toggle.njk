@@ -1,0 +1,32 @@
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // 寻找侧边栏
+    const sidebar = document.querySelector('.sidebar');
+    // 如果当前页面没有侧边栏（例如被我们的 Iframe 隐身衣藏起来了），则不生成按钮
+    if (!sidebar || window !== window.top) return;
+
+    // 创建悬浮控制按钮
+    const btn = document.createElement('button');
+    btn.className = 'dg-sidebar-toggle';
+    btn.title = 'Toggle Sidebar';
+    
+    // 初始状态图标（这里用 emoji 代表大纲/侧边栏，你可以换成任何 SVG）
+    btn.innerHTML = '📑'; 
+    
+    // 注入页面
+    document.body.appendChild(btn);
+
+    // 核心切换逻辑
+    btn.addEventListener('click', () => {
+        sidebar.classList.toggle('is-collapsed');
+        btn.classList.toggle('collapsed-mode');
+        
+        // 可选：根据状态改变按钮图标
+        if (sidebar.classList.contains('is-collapsed')) {
+            btn.innerHTML = '👁️'; // 收起时显示“眼睛”，提示点击查看
+        } else {
+            btn.innerHTML = '📑'; // 展开时显示文档图标
+        }
+    });
+});
+</script>
