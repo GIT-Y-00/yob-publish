@@ -1,8 +1,9 @@
 /* 自定义：src/site/styles/user/excalidraw-fullscreen.scss */
 
 /**
- * Excalidraw Outer Fullscreen Styles V4.0
+ * Excalidraw Outer Fullscreen Styles V4.1
  * * 目标：控制 excalidraw-wrapper 的全屏状态与控制按钮样式。
+ * * [V4.1 更新]：移除突兀的红色警告背景，退出全屏按钮统一为极简线条白色设计。
  */
 
 /* 1. 为外层容器提供相对定位基准，以便按钮吸附 */
@@ -15,7 +16,7 @@
     position: absolute;
     top: 12px;
     right: 12px;
-    z-index: 50; /* 必须高于画布，但低于全屏时的极值 */
+    z-index: 50; 
     width: 36px;
     height: 36px;
     border-radius: 8px;
@@ -47,7 +48,7 @@
     left: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    z-index: 999999 !important; /* 突破天际，盖住侧边栏和顶栏 */
+    z-index: 999999 !important; 
     margin: 0 !important;
     padding: 0 !important;
     max-width: none !important;
@@ -55,18 +56,23 @@
     background-color: var(--background-primary, #1e1e1e) !important;
 }
 
-/* 全屏状态下，按钮的定位也要相应调整为 Fixed，防止滚动条干扰 */
+/* 4. [V4.1 核心更新] 全屏状态下的退出按钮：极简线条白色 */
 .excalidraw-wrapper.is-fullscreen .dg-excalidraw-fs-btn {
     position: fixed;
     top: 20px;
     right: 20px;
-    background-color: rgba(239, 68, 68, 0.9); /* 红色退出按钮 */
-    color: white;
-    border: none;
-    opacity: 0.8;
+    
+    /* 极简透明设计 */
+    background-color: transparent; 
+    color: #ffffff; /* 纯白 X 图标 */
+    border: 1px solid rgba(255, 255, 255, 0.4); /* 半透明白色线框 */
+    box-shadow: none;
+    opacity: 0.5; /* 默认半透明，降低存在感不打扰绘图 */
 }
 
 .excalidraw-wrapper.is-fullscreen .dg-excalidraw-fs-btn:hover {
     opacity: 1;
-    background-color: rgba(220, 38, 38, 1);
+    background-color: rgba(255, 255, 255, 0.1); /* 鼠标悬停时微微泛起白色高光 */
+    border-color: #ffffff; /* 线框变亮 */
+    transform: scale(1.05);
 }
