@@ -1,5 +1,5 @@
 ---
-{"dg-publish":true,"permalink":"/Vault/测试嵌套.canvas/","contentClasses":"canvas-page","created":"2026-04-18T20:56:34.919+02:00","updated":"2026-04-24T02:58:30.625+02:00","dg-note-properties":{}}
+{"dg-publish":true,"permalink":"/Vault/测试嵌套.canvas/","contentClasses":"canvas-page","created":"2026-04-18T20:56:34.919+02:00","updated":"2026-04-24T15:13:05.365+02:00","dg-note-properties":{}}
 ---
 
 <div id="测试嵌套canvas" class="canvas-wrapper hide">
@@ -28,11 +28,11 @@
 		</div>
 	</div>
 </div>
-<div class="canvas-node canvas-node-file " data-node-id="5e562cba1711607e" data-file-path="母体.canvas" style="transform: translate(60px, -180px); width: 620px; height: 500px; ">
-	<div class="canvas-node-label">母体.canvas</div>
+<div class="canvas-node canvas-node-file " data-node-id="5e562cba1711607e" data-file-path="Canvas母体.canvas" style="transform: translate(60px, -180px); width: 620px; height: 500px; ">
+	<div class="canvas-node-label">Canvas母体.canvas</div>
 	<div class="canvas-node-container">
 		<div class="canvas-node-content markdown-embed">
-			<iframe src="/母体.canvas//" class="canvas-file-iframe" loading="lazy"></iframe>
+			<iframe src="/Canvas母体.canvas//" class="canvas-file-iframe" loading="lazy"></iframe>
 		</div>
 	</div>
 </div>
