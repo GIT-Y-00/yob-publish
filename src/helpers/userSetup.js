@@ -1,20 +1,23 @@
+/* 自定义：src/helpers/userSetup.js */
+
 /**
- * Excalidraw React Injector V2.11
- * * 保持 V2.10 的异步聚焦引擎，配合 V2.11 的极致防吞滚轮策略。
+ * Excalidraw React Injector V5.0
+ * * 包含 V2.11 的异步聚焦引擎与防吞滚轮策略。
+ * * [V5.0 升级] 增强路径雷达：支持拦截 .excalidraw.svg 后缀，并自动重定向至真实的 Excalidraw 可交互网页路由。
  */
 
 console.error("=========================================");
-console.error("[V2.11 Log] userSetup.js loaded. Async Focus Engine ENGAGED.");
+console.error("[V5.0 Log] userSetup.js loaded. SVG Redirector & Async Focus Engine ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v2.11", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v5.0", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
 
       // ==========================================
-      // 阶段 A：路径雷达与清洗
+      // 阶段 A：路径雷达与清洗 (V5.0 升级版)
       // ==========================================
       const linkMap = {};
       const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
@@ -33,25 +36,45 @@ function userEleventySetup(eleventyConfig) {
 
       const dataRegex = /\blink\s*:\s*(["'])(.*?)\1/g;
       fixedContent = fixedContent.replace(dataRegex, function(matchedStr, quote, innerLink) {
-        if (!innerLink.includes('[') && !innerLink.includes(']') && !innerLink.includes('.md')) return matchedStr;
+        
+        // [V5.0 修复 1]：扩大雷达扫描范围，允许 .svg 格式通过拦截网
+        if (!innerLink.includes('[') && !innerLink.includes(']') && !innerLink.includes('.md') && !innerLink.includes('.svg')) {
+            return matchedStr;
+        }
 
         let filename = "";
-        const mdLinkMatch = innerLink.match(/\/([^/]+)\.md\)?$/);
-        if (mdLinkMatch) filename = mdLinkMatch[1];
-        else filename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
+        
+        // [V5.0 修复 2]：兼容转换后的相对路径，同时捕获 .md 和 .svg
+        const pathMatch = innerLink.match(/\/([^/]+)\.(md|svg)\)?$/i);
+        if (pathMatch) {
+            // 如果原链接是 /img/.../test.excalidraw.svg，提取出 test.excalidraw
+            filename = pathMatch[1]; 
+        } else {
+            // 清除 Obsidian 双括号和别名
+            filename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
+            // [V5.0 修复 3]：精准剔除尾部的 .md 或 .svg 后缀
+            // 例如：test_draw_iframe.excalidraw.svg -> test_draw_iframe.excalidraw
+            filename = filename.replace(/\.(md|svg)$/i, '');
+        }
 
+        // 去 linkMap 字典中查找真正的文件夹路径
         let realPath = linkMap[filename];
         if (!realPath) {
            const targetSlug = filename.toLowerCase().replace(/\s+/g, '-');
            for (const key in linkMap) {
-               if (key.toLowerCase().replace(/\s+/g, '-') === targetSlug) { realPath = linkMap[key]; break; }
+               if (key.toLowerCase().replace(/\s+/g, '-') === targetSlug) { 
+                   realPath = linkMap[key]; 
+                   break; 
+               }
            }
         }
+        
+        // 组装最终安全的 URL
         return `link:${quote}${realPath ? realPath : `/${filename}/`}${quote}`;
       });
 
       // ==========================================
-      // 阶段 B：注入高性能交互卡片
+      // 阶段 B：注入高性能交互卡片 (继承 V2.11 稳定架构)
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
