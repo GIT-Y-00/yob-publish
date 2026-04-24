@@ -1,45 +1,58 @@
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("[v1.1 Log] Trojan Iframe Hunter initialized.");
+    // [v1.0 Log] 确认脚本已在客户端加载
+    console.log("[v1.0 Log] Iframe Detector initialized. Waiting for Excalidraw...");
 
+    // 使用 MutationObserver 监听动态生成的 Canvas 元素
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
+                // 仅处理元素节点
                 if (node.nodeType === 1) { 
                     
-                    // 收集刚插入 DOM 的所有 iframe
-                    let iframes = [];
-                    if (node.tagName === 'IFRAME') {
-                        iframes.push(node);
+                    // 寻找潜在的链接节点 (兼容多种可能生成的 DOM 结构)
+                    let links = [];
+                    if (node.matches && node.matches('.notelink a.filename, a.internal-link')) {
+                        links.push(node);
                     } else if (node.querySelectorAll) {
-                        iframes = [...iframes, ...Array.from(node.querySelectorAll('iframe'))];
+                        const found = node.querySelectorAll('.notelink a.filename, a.internal-link');
+                        links = [...links, ...Array.from(found)];
                     }
 
-                    iframes.forEach(iframe => {
-                        const src = iframe.getAttribute('src');
-                        
-                        // 只拦截我们伪造的特洛伊木马 URL
-                        if (src && src.includes('dg-local-embed.com/Vault/')) {
-                            console.log(`[v1.1 Log] Trojan iframe caught: ${src}`);
-                            
-                            // 砍掉假域名，恢复相对路径，浏览器会自动加上当前的 Cloudflare 域名
-                            const realRelativePath = src.replace('https://dg-local-embed.com', '');
-                            iframe.setAttribute('src', realRelativePath);
-                            
-                            // 注入类名以应用我们的自定义 CSS
-                            iframe.classList.add('excalidraw-md-iframe');
-                            if (iframe.parentElement) {
-                                iframe.parentElement.classList.add('excalidraw-iframe-wrapper');
-                            }
+                    links.forEach(link => {
+                        const href = link.getAttribute('href');
+                        if (!href || !href.includes('/Vault/')) return;
 
-                            console.log(`[v1.1 Log] Iframe source fixed to: ${realRelativePath}`);
-                        }
+                        // 关键判断：确保该链接是在 Excalidraw 的势力范围内生成的
+                        // 防止误伤页面左侧导航栏或正文的普通链接
+                        const isInsideExcalidraw = link.closest('.excalidraw__canvas, .excalidraw-container, [class*="excalidraw"]');
+                        if (!isInsideExcalidraw) return;
+
+                        const parentBox = link.parentElement;
+
+                        // 防止重复注入
+                        if (parentBox.querySelector('.excalidraw-md-iframe')) return;
+
+                        console.log(`[v1.0 Log] SUCCESS! Upgrading element to iframe: ${href}`);
+
+                        // 创建小网页 iframe
+                        const iframe = document.createElement('iframe');
+                        iframe.src = href;
+                        iframe.className = 'excalidraw-md-iframe';
+                        
+                        // 隐藏原始链接文本
+                        link.style.display = 'none';
+                        
+                        // 将 iframe 注入 DOM
+                        parentBox.appendChild(iframe);
+                        parentBox.classList.add('excalidraw-iframe-wrapper');
                     });
                 }
             });
         });
     });
 
+    // 监控整个 body 的变化，因为 Excalidraw 是异步渲染的
     observer.observe(document.body, {
         childList: true,
         subtree: true
