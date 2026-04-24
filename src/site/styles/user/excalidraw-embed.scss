@@ -1,48 +1,69 @@
 /* 自定义：src/site/styles/user/excalidraw-embed.scss */
 
 /**
- * Iframe Embed Styles (The Cloak of Invisibility) V7.3
- * * 目标：在 Iframe 环境下，抹除一切多余框架，并拔除 CSS 动画干扰。
- * * [V7.3 新增] 彻底清除 Excalidraw 画布在被嵌套时继承的上下 margin 和 65vh 高度限制，实现 100% 完美无缝铺满。
+ * Iframe Embed Styles (The Ultimate Cloak) V7.4
+ * * [集成 V2.11] 强制关闭平滑滚动，确保 JS 高频位移指令零延迟。
+ * * [集成 V7.4] 彻底中和 V6.x 引入的侧边栏布局与画布边距，确保 MD 和 Excalidraw 嵌套时均能无缝铺满。
  */
 
-/* 1. 精准隐身：去除侧边栏、文件树、顶栏 */
-html.is-in-iframe .sidebar,
-html.is-in-iframe .filetree-wrapper,
-html.is-in-iframe .site-header {
-    display: none !important;
-}
-
-/* 2. 动画剥夺与透明底色：确保 JS 高频滚动不卡顿 */
-html.is-in-iframe, 
-html.is-in-iframe body {
+/* =========================================
+ * 1. 环境感知：当网页作为 Iframe 被嵌入时
+ * ========================================= */
+html.is-in-iframe {
+    /* [V2.11 核心传承] 强制取消平滑滚动 */
     scroll-behavior: auto !important;
-    background-color: transparent !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
 
-/* 3. [V7.3 核心修复] 强制正文容器剥离所有的内外边距 */
-html.is-in-iframe .content, 
-html.is-in-iframe .markdown-preview-view,
-html.is-in-iframe main,
-html.is-in-iframe .page-wrapper {
-    margin: 0 !important;
-    padding: 0 !important;
-    max-width: none !important;
-    width: 100% !important;
-}
+    body {
+        scroll-behavior: auto !important;
+        background-color: transparent !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-x: hidden !important;
+    }
 
-/* 4. [V7.3 核心修复] 解除内嵌 Excalidraw 画布的封印，强制 100% 无缝填满 Iframe */
-html.is-in-iframe .excalidraw-wrapper {
-    margin: 0 !important;              /* 拔除 V6.x 的 2rem 上下边距 */
-    height: 100vh !important;          /* 强行撑满整个 Iframe 的高度 */
-    min-height: 100vh !important;
-    max-height: none !important;       /* 拔除 V6.x 的 1200px 封顶限制 */
-    width: 100vw !important;
-    max-width: none !important;
-    
-    border-radius: 0 !important;       /* 拔除圆角，完美贴合 Iframe 边缘 */
-    border: none !important;           /* 拔除边框 */
-    box-shadow: none !important;       /* 拔除悬浮阴影 */
+    /* 2. 纯净隐身：彻底摘除所有导航、侧边栏和页眉页脚 */
+    .filetree-wrapper,
+    .sidebar,
+    .sidebar-left,
+    .sidebar-right,
+    .site-header,
+    header,
+    footer,
+    nav {
+        display: none !important;
+    }
+
+    /* 3. 容器拉伸：确保 MD 文本区占满 Iframe */
+    .content, 
+    .markdown-preview-view,
+    main,
+    .page-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+        min-height: 100vh !important;
+    }
+
+    /* 4. [V7.4 关键修复] 针对内嵌 Excalidraw 画布的“去壳”逻辑
+       彻底中和在 excalidraw-fullscreen.scss 中定义的非全屏装饰样式。 */
+    .excalidraw-wrapper {
+        /* 强行抹除 V6.x 定义的上下 2rem 呼吸边距 */
+        margin: 0 !important; 
+        
+        /* 强行抹除 V6.x 定义的 65vh 高度，让其绝对铺满 Iframe 的整个高度 */
+        height: 100vh !important; 
+        min-height: 100vh !important;
+        max-height: none !important;
+        
+        /* 强行铺满宽度，抹除圆角和投影 */
+        width: 100vw !important;
+        max-width: none !important;
+        border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        
+        /* 确保背景透明，不产生双重底色 */
+        background-color: transparent !important;
+    }
 }
