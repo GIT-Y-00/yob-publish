@@ -1,29 +1,22 @@
 /**
- * Global Layout Tweaks V3.1
- * * 目标：打破宽屏下的文件树向中心靠拢逻辑，强制其停靠在屏幕左边缘。
+ * Global Layout Tweaks V3.2 (Sidebar Width Control)
+ * * 目标：左侧对齐，并引入 20vw 响应式宽度，设定合理的缩放上下限。
+ * * 断点选择：保留 >= 1400px，确保不干扰移动端和 iPad/iPhone 横屏的默认侧滑抽屉逻辑。
  */
 
 @media (min-width: 1400px) {
-    /* 强制重写大屏幕下的文件树包裹层布局 */
     .filetree-wrapper {
-        /* 将内容强制推向左侧起始点 */
+        /* 1. 强制靠左对齐 (继承自 V3.1) */
         justify-content: flex-start !important;
-        
-        /* 消除可能存在的左侧自动外边距 */
         margin-left: 0 !important;
-        
-        /* 给左侧保留一点优雅的呼吸空间，不至于文字完全贴死屏幕物理边缘 */
-        padding-left: 1rem !important; 
-    }
+        padding-left: 1rem !important;
 
-    /* * 【可选预判修复】
-     * 如果主题的最外层（通常是 body 或 .page-wrapper）设置了整体居中，
-     * 上面的代码只会让文件树在“它自己的格子里”靠左。
-     * 如果上面的代码部署后没有变化，说明是整体被居中了，请解除下方代码的注释：
-     */
-    /*
-    body {
-        justify-content: flex-start !important;
+        /* 2. [V3.2 新增] 响应式宽度控制 */
+        width: 20vw !important;         /* 动态跟随网页宽度：20% */
+        min-width: 250px !important;    /* 物理下限：防止屏幕缩小时文字挤压换行 */
+        max-width: 350px !important;    /* 物理上限：防止在 4K 超大屏下变得宽大无比 (可自行修改此值) */
+        
+        /* 3. 清理多余背景：防止背景色无意义地向右延伸 */
+        flex-grow: 0 !important;
     }
-    */
 }
