@@ -1,24 +1,23 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V7.0
- * * 包含 V5.0 的路径雷达与 SVG 拦截。
- * * [V7.0 核心修复] 增加语法修复引擎 (Syntax Healer)，修复原生插件生成未转义的 
- * <a class="internal-link"> 导致 JS 引发 Unexpected identifier 语法崩溃的底层 Bug。
+ * Excalidraw React Injector V7.1
+ * * [V7.1 终极修复] 重写 dataRegex，修复其无法匹配 JSON 双引号键名 ("link":) 导致的路由解析失效问题。
+ * * 引入更强大的括号与后缀清洗器。
  */
 
 console.error("=========================================");
-console.error("[V7.0 Log] userSetup.js loaded. Syntax Healer & Async Focus Engine ENGAGED.");
+console.error("[V7.1 Log] userSetup.js loaded. Robust URL Resolver ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v7.0", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v7.1", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
 
       // ==========================================
-      // 阶段 A：路径雷达与清洗 (V7.0 修复版)
+      // 阶段 A：路径雷达与清洗
       // ==========================================
       const linkMap = {};
       const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
@@ -35,34 +34,37 @@ function userEleventySetup(eleventyConfig) {
         }
       }
 
-      // [V7.0 核心修复] 语法修复引擎 (Syntax Healer)
-      // 针对原生插件未转义引号的 Bug："link": "<a class="internal-link"...>file.md</a>"
-      // 用正则无视 JS 语法边界，强行捕获这段破碎的 HTML，提取文本并重写为安全字符串。
+      // ==========================================
+      // 阶段 B：语法修复引擎 (Syntax Healer)
+      // ==========================================
       fixedContent = fixedContent.replace(/"link"\s*:\s*"(<a\b[\s\S]*?<\/a>)"/gi, function(match, htmlStr) {
           const textMatch = htmlStr.match(/>([^<]+)<\/a>/i);
           const filename = textMatch ? textMatch[1].trim() : "";
-          // 重新包装为绝对安全的 JSON 字符串
           return `"link": "${filename}"`;
       });
 
-      // 常规路径解析逻辑 (兼容经过 Healer 修复后的纯文本)
-      const dataRegex = /\blink\s*:\s*(["'])(.*?)\1/g;
-      fixedContent = fixedContent.replace(dataRegex, function(matchedStr, quote, innerLink) {
+      // ==========================================
+      // 阶段 C：终极路由解析器 (Robust URL Resolver)
+      // ==========================================
+      // [V7.1 修复] 匹配 "link": "...", 'link': "...", link: "..." (兼容所有引号形式)
+      const dataRegex = /(["']?)link\1\s*:\s*(["'])(.*?)\2/g;
+      
+      fixedContent = fixedContent.replace(dataRegex, function(matchedStr, keyQuote, valQuote, innerLink) {
         
-        // 增加对 .excalidraw 后缀的放行规则
-        if (!innerLink.includes('[') && !innerLink.includes(']') && !innerLink.includes('.md') && !innerLink.includes('.svg') && !innerLink.includes('.excalidraw')) {
+        // 排除空白、外部网络链接、页面锚点
+        if (!innerLink || innerLink.startsWith('http') || innerLink.startsWith('#')) {
             return matchedStr;
         }
 
-        let filename = "";
-        const pathMatch = innerLink.match(/\/([^/]+)\.(md|svg|excalidraw)\)?$/i);
-        if (pathMatch) {
-            filename = pathMatch[1]; 
-        } else {
-            filename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
-            filename = filename.replace(/\.(md|svg|excalidraw)$/i, '');
-        }
+        // 终极清洗：抹除所有可能的 Obsidian 左右括号（应对 [1234] 这种残缺情况）和别名符号
+        let filename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
+        
+        // 终极清洗：剔除所有可能影响路由匹配的后缀名
+        filename = filename.replace(/\.(md|svg|excalidraw)$/i, '');
 
+        if (!filename) return matchedStr;
+
+        // 搜寻真实路径
         let realPath = linkMap[filename];
         if (!realPath) {
            const targetSlug = filename.toLowerCase().replace(/\s+/g, '-');
@@ -74,11 +76,17 @@ function userEleventySetup(eleventyConfig) {
            }
         }
         
-        return `link:${quote}${realPath ? realPath : `/${filename}/`}${quote}`;
+        const finalPath = realPath ? realPath : `/${filename}/`;
+        
+        // [构建期雷达]：可以在 Node 终端看到修复结果
+        console.log(`[V7.1 Radar] Fixed JSON Link: ${innerLink}  --->  ${finalPath}`);
+
+        // 原样包装回 JSON 属性，确保语法绝对安全
+        return `${keyQuote}link${keyQuote}: ${valQuote}${finalPath}${valQuote}`;
       });
 
       // ==========================================
-      // 阶段 B：注入高性能交互卡片 (V7.0 稳定架构)
+      // 阶段 D：注入高性能交互卡片
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
