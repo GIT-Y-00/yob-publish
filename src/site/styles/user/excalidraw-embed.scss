@@ -1,26 +1,16 @@
 /**
- * Excalidraw Embedded Iframe Styles v2.5 (Scroll Fix Edition)
- * * 修复由于布局重写导致的内部容器劫持滚动条、Window 焦点无法响应滚轮的问题。
+ * Excalidraw Embedded Iframe Styles v2.6 (Minimalist Safe Edition)
+ * * 严肃排查结果：彻底放弃对 .content 和 body 等布局属性的暴力重写。
+ * * 仅执行纯粹的“视觉隐藏”，完全保留 Digital Garden 原生的 DOM 滚动逻辑。
  */
 
 html.is-in-iframe {
-    /* [V2.5 核心修复 1]：强制根节点成为唯一的滚动条持有者 */
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    height: 100% !important;
     
-    body {
-        background-color: transparent !important;
-        /* 解除 body 层面的隐藏滚动限制 */
-        overflow: visible !important;
-        height: auto !important;
-        min-height: 100% !important;
-        margin: 0;
-    }
-    
-    /* 1. 元素隐身衣：隐藏多余框架要素 */
+    /* 1. 纯净隐身：仅去除多余的 UI 框架，坚决不碰布局规则 */
     .filetree-wrapper,
     .sidebar,
+    .sidebar-left,
+    .sidebar-right,
     .site-header,
     header,
     footer,
@@ -28,22 +18,8 @@ html.is-in-iframe {
         display: none !important;
     }
 
-    /* 2. 解除束缚与滚动权收归 */
-    .content,
-    main,
-    .page-content,
-    #app /* 兼容部分单页应用打包容器 */ {
-        margin: 0 !important;
-        padding: 1rem 1.5rem !important; 
-        max-width: none !important;
-        width: 100% !important;
-        box-shadow: none !important; 
-        border: none !important;
-        
-        /* [V2.5 核心修复 2]：剥夺内部容器的滚动权，强制将其内容撑开，把滚动事件交还给 Window */
-        overflow: visible !important;
-        height: auto !important;
-        max-height: none !important;
-        position: static !important;
+    /* 2. 背景融合：让卡片透明，融入 Excalidraw 画布 */
+    body {
+        background-color: transparent !important;
     }
 }
