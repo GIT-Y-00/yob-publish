@@ -1,17 +1,17 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V7.2
- * * 包含 V7.1 的 Robust URL Resolver。
- * * [V7.2 体验升级] 修改 renderEmbeddable 的层级探测逻辑，将 iframe 嵌套深度限制从 1 层放宽至 2 层。
+ * Excalidraw React Injector V8.0
+ * * 包含 V7.2 的深度嵌套层级支持。
+ * * [V8.0 逻辑重构] 引入链式后缀清洗器 (Chain Suffix Cleaner)，完美解决 .excalidraw.md.svg 等多重后缀堆叠导致的路由匹配失败问题。
  */
 
 console.error("=========================================");
-console.error("[V7.2 Log] userSetup.js loaded. Deep Nesting (Level 2) ENGAGED.");
+console.error("[V8.0 Log] userSetup.js loaded. Chain Suffix Cleaner ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v7.2", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v8.0", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
@@ -44,7 +44,7 @@ function userEleventySetup(eleventyConfig) {
       });
 
       // ==========================================
-      // 阶段 C：终极路由解析器 (Robust URL Resolver)
+      // 阶段 C：终极路由解析器 (V8.0 链式清洗)
       // ==========================================
       const dataRegex = /(["']?)link\1\s*:\s*(["'])(.*?)\2/g;
       
@@ -54,16 +54,30 @@ function userEleventySetup(eleventyConfig) {
             return matchedStr;
         }
 
-        let filename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
-        filename = filename.replace(/\.(md|svg|excalidraw)$/i, '');
+        // 1. 剔除括号和别名
+        let baseFilename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
+        
+        // 2. [V8.0 核心] 链式清理：循环剔除结尾的所有 .md 和 .svg，无视堆叠顺序
+        let filename = baseFilename.replace(/(\.md|\.svg)+$/i, '');
 
         if (!filename) return matchedStr;
 
+        // 3. 第一顺位查找：带 .excalidraw 的原名查找
         let realPath = linkMap[filename];
+        
+        // 4. 第二顺位查找：如果连 .excalidraw 后缀都去掉了呢？
+        if (!realPath) {
+            let cleanName = filename.replace(/\.excalidraw$/i, '');
+            realPath = linkMap[cleanName] || linkMap[cleanName + '.excalidraw'];
+        }
+
+        // 5. 第三顺位查找：极端情况下的 Slug 模糊匹配
         if (!realPath) {
            const targetSlug = filename.toLowerCase().replace(/\s+/g, '-');
+           const cleanSlug = targetSlug.replace(/-excalidraw$/, '');
            for (const key in linkMap) {
-               if (key.toLowerCase().replace(/\s+/g, '-') === targetSlug) { 
+               const keySlug = key.toLowerCase().replace(/\s+/g, '-');
+               if (keySlug === targetSlug || keySlug === cleanSlug) { 
                    realPath = linkMap[key]; 
                    break; 
                }
@@ -72,7 +86,7 @@ function userEleventySetup(eleventyConfig) {
         
         const finalPath = realPath ? realPath : `/${filename}/`;
         
-        console.log(`[V7.2 Radar] Fixed JSON Link: ${innerLink}  --->  ${finalPath}`);
+        console.log(`[V8.0 Radar] Fixed Link: ${innerLink} ---> ${finalPath}`);
 
         return `${keyQuote}link${keyQuote}: ${valQuote}${finalPath}${valQuote}`;
       });
@@ -157,8 +171,6 @@ function userEleventySetup(eleventyConfig) {
             excalidrawProps.renderEmbeddable = function(node) { 
               if (node && node.link) { 
                 
-                // [V7.2 核心更新] 放宽嵌套层级至两层
-                // 只有当自己不是顶层，且自己的父级也不是顶层时，才阻断渲染
                 if (window.top !== window.self && window.top !== window.parent) {
                   return React.createElement("div", { 
                     style: { display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", background: "var(--background-secondary, #f8f9fa)", border: "2px dashed #d1d5db", borderRadius: "8px" } 
