@@ -92,3 +92,11 @@
 .dg-sidebar-toggle.collapsed-mode:hover {
     opacity: 1;
 }
+
+:fullscreen {
+    background-color: var(--background-primary) !important;
+}
+
+:-webkit-full-screen {
+    background-color: var(--background-primary) !important;
+}
