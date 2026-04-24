@@ -1,0 +1,53 @@
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // 只有在顶层窗口（排除了内嵌 Iframe）才执行外层画布的全屏逻辑
+    if (window !== window.top) return;
+
+    // 使用 MutationObserver 等待 React 将 excalidraw-wrapper 渲染到页面上
+    const observer = new MutationObserver((mutations) => {
+        const wrapper = document.querySelector('.excalidraw-wrapper');
+        
+        // 如果找到了 Wrapper，且还没有注入过我们的全屏按钮
+        if (wrapper && !wrapper.querySelector('.dg-excalidraw-fs-btn')) {
+            console.log("[V4.0 Log] Excalidraw wrapper detected. Injecting Fullscreen toggle.");
+            
+            const btn = document.createElement('button');
+            btn.className = 'dg-excalidraw-fs-btn';
+            btn.innerHTML = '⛶'; // 展开图标
+            btn.title = "Toggle Canvas Fullscreen";
+            
+            // 阻止点击事件向下冒泡，防止触发 Excalidraw 画布内部的拖拽或点击
+            btn.addEventListener('pointerdown', (e) => e.stopPropagation());
+            
+            // 核心点击逻辑
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // 切换全屏类名
+                wrapper.classList.toggle('is-fullscreen');
+                
+                const isFs = wrapper.classList.contains('is-fullscreen');
+                
+                if (isFs) {
+                    btn.innerHTML = '✖'; // 切换为关闭图标
+                    document.body.style.overflow = 'hidden'; // 锁死底层网页的滚动条
+                } else {
+                    btn.innerHTML = '⛶';
+                    document.body.style.overflow = ''; // 恢复底层网页滚动
+                }
+                
+                // 【V4.0 核心黑科技】
+                // 强制派发一个 window resize 事件。
+                // 这会欺骗 Excalidraw 的 React 引擎，迫使它重新计算 Canvas 尺寸，
+                // 瞬间将画布的物理分辨率铺满当前的 100vw 和 100vh，完美解决画面拉伸或发虚！
+                window.dispatchEvent(new Event('resize'));
+            });
+            
+            wrapper.appendChild(btn);
+        }
+    });
+
+    // 监听整个 body，确保即使页面是 SPA 路由跳转也能捕捉到
+    observer.observe(document.body, { childList: true, subtree: true });
+});
+</script>
