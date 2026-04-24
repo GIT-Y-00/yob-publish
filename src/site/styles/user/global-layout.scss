@@ -1,43 +1,70 @@
 /* 自定义：src/site/styles/user/global-layout.scss */
 
 /**
- * Global Layout Tweaks V6.4
+ * Global Layout Tweaks V6.5 (Absolute Symmetry Edition)
  * * 包含 V3.5 的侧边栏 UI 与贴边。
- * * [V6.4 修复] 解决左侧 filetree-wrapper 变宽后，内部内容宽度死板导致的空白异常。
+ * * [V6.5 核心] 统一定义侧边栏宽度，强制左侧(大中小)与右侧(大中)容器同步拉伸，构建完美的绝对对称空间。
  */
 
+/* =========================================
+ * 1. 定义全局侧边栏宽度变量
+ * ========================================= */
+:root {
+    /* 动态计算：最小 250px，理想占比 20vw，最大 350px */
+    --user-sidebar-width: clamp(250px, 20vw, 350px);
+}
+
 @media (min-width: 1400px) {
-    /* 1. 文件树最外层容器靠左贴边并加宽 */
+    /* =========================================
+     * 左侧体系：大容器 -> 中容器 -> 小容器
+     * ========================================= */
+    /* 1. 大容器：靠左贴边 */
     .filetree-wrapper {
         justify-content: flex-start !important;
         margin-left: 0 !important;
         padding-left: 1rem !important;
-        width: 20vw !important;
-        min-width: 250px !important;
-        max-width: 350px !important;
+        box-sizing: border-box !important; /* 确保 padding 不会撑破 width */
+        
+        /* 使用全局对称宽度 */
+        width: var(--user-sidebar-width) !important;
+        min-width: var(--user-sidebar-width) !important;
+        max-width: var(--user-sidebar-width) !important;
         flex-grow: 0 !important;
     }
 
-    /* [V6.4 核心修复] 强制让内部的导航树填满变宽后的容器 */
-    .filetree-sidebar {
+    /* 2. 中/小容器：强制撑满大容器 */
+    .filetree-sidebar, .folder {
         width: 100% !important;
         max-width: none !important; 
     }
 
-    /* 2. Sidebar 靠右贴边 */
+    /* =========================================
+     * 右侧体系：大容器 -> 中容器
+     * ========================================= */
+    /* 1. 大容器：靠右贴边 (彻底抹除原生 calc 偏移) */
     .sidebar {
         left: auto !important; 
         right: 0 !important;   
         top: 0 !important;
         height: 100vh !important;
         border-radius: 0 !important; 
+        
+        /* 使用与左侧完全一样的全局对称宽度 */
+        width: var(--user-sidebar-width) !important;
+        min-width: var(--user-sidebar-width) !important;
+        max-width: var(--user-sidebar-width) !important;
+    }
+
+    /* 2. 中容器：强制撑满 */
+    .sidebar-container {
+        width: 100% !important;
+        max-width: none !important;
     }
 }
 
 /* =========================================
  * 全局样式 (PC与手机共用)
  * ========================================= */
-
 .sidebar {
     background-color: rgb(30, 35, 47) !important;
     padding: 1.5rem 1rem !important;

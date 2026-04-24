@@ -1,73 +1,45 @@
 /* 自定义：src/site/styles/user/excalidraw-fullscreen.scss */
 
 /**
- * Excalidraw Outer Fullscreen & Responsive Styles V6.5 (The Math Edition)
+ * Excalidraw Outer Fullscreen & Responsive Styles V6.5
  * * 包含 V4.1 的全屏与 SVG 图标逻辑。
- * * [V6.5 终极重构] 彻底废弃 margin: auto 造成的几何偏移。
- * * 引入局部 CSS 变量与 max() 函数，计算绝对物理避让边距，实现真正的防碰撞动态居中。
+ * * [V6.5 完美版] 依托 Global Layout 的对称宽度体系，实现无误差的中心拓宽。
  */
 
 /* =========================================
- * 1. 动态拓宽阅读区 (V6.5 绝对公式法)
+ * 1. 动态拓宽阅读区 (V6.5 绝对中心版)
  * ========================================= */
 
-/* 默认情况 (< 1400px)：手机/平板。此时没有两侧固定侧边栏的干扰，正常占满。 */
-.content:has(.excalidraw-wrapper),
-.markdown-preview-view:has(.excalidraw-wrapper),
-main:has(.excalidraw-wrapper),
-.page-wrapper:has(.excalidraw-wrapper) {
-    max-width: 100% !important;
-    width: auto !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-    transition: all 0.3s ease;
+/* 默认情况 (< 1400px)：侧边栏已收缩，直接拓宽 */
+body:has(.excalidraw-wrapper) {
+    --dg-content-max-width: 1200px !important;
 }
 
-/* 宽屏情况 (>= 1400px)：此时两侧侧边栏为 Fixed 悬浮，必须启用空间计算公式 */
+/* 宽屏情况 (>= 1400px)：左右已建立严格的对称墙壁 */
 @media (min-width: 1400px) {
     .content:has(.excalidraw-wrapper),
     .markdown-preview-view:has(.excalidraw-wrapper),
     main:has(.excalidraw-wrapper),
     .page-wrapper:has(.excalidraw-wrapper) {
         
-        /* --- 定义空间几何变量 --- */
-        /* 左侧树的真实物理厚度 (继承自 V3.5) */
-        --left-bar-w: clamp(250px, 20vw, 350px);
-        /* 右侧侧边栏的真实物理厚度 (读取主题变量，兜底 350px) */
-        --right-bar-w: var(--dg-sidebar-max-width, 350px);
-        /* 我们想要的最小安全呼吸距离 */
-        --safe-gap: 2rem;
-        /* 正文区域的极致宽屏上限 */
-        --max-content: 1400px;
-        /* 扣除两侧侧边栏和正文上限后，屏幕剩余的自由空间 */
-        --free-space: calc(100vw - var(--left-bar-w) - var(--right-bar-w) - var(--max-content));
-
-        /* --- 应用属性 --- */
-        padding: 0 !important;
-        width: 100% !important;
-        max-width: var(--max-content) !important;
+        /* 核心算法：100% (不含滚动条的屏幕可用宽度) - 左侧墙壁 - 右侧墙壁 - 4rem(双侧安全留白) */
+        /* 由于使用了 100% 而不是 100vw，彻底杜绝了 Windows 滚动条宽度引起的偏移！ */
+        max-width: calc(100% - (var(--user-sidebar-width) * 2) - 4rem) !important;
         
-        /* [核心算法] 左外边距：在“安全距离”和“平分自由空间”中取最大值 */
-        margin-left: max(
-            calc(var(--left-bar-w) + var(--safe-gap)), 
-            calc(var(--left-bar-w) + (var(--free-space) / 2))
-        ) !important;
-        
-        /* [核心算法] 右外边距：在“安全距离”和“平分自由空间”中取最大值 */
-        margin-right: max(
-            calc(var(--right-bar-w) + var(--safe-gap)), 
-            calc(var(--right-bar-w) + (var(--free-space) / 2))
-        ) !important;
+        /* 自然居中 */
+        margin-left: auto !important;
+        margin-right: auto !important;
     }
 }
 
+.content, .markdown-preview-view, main, .page-wrapper {
+    transition: max-width 0.3s ease;
+}
+
 /* =========================================
- * 2. 非全屏状态的比例适配 
+ * 2. 非全屏状态的比例适配
  * ========================================= */
 .excalidraw-wrapper:not(.is-fullscreen) {
-    /* 容器内部自然填满上述公式算出的空间 */
     margin: 2rem 0 !important;
     width: 100% !important;
     height: 65vh !important; 
