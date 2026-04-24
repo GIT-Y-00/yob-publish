@@ -1,15 +1,15 @@
 /**
- * Excalidraw React Injector v2.3 (Final Polish)
- * * 核心突破：修复 "User Gesture Token" 丢失导致的滚轮失效问题。
- * * 机制：在 onPointerDown 的同步调用栈中直接强夺焦点，绕过异步渲染造成的浏览器信任降级。
+ * Excalidraw React Injector v2.4 (Stable UI Release)
+ * * 修复 V2.3 中由于同时绑定 PointerDown 和 Click 导致的双重触发 (Double-toggle) 闪烁 Bug。
+ * * 确立 onPointerDown 为唯一的交互接管事件。
  */
 
 console.error("=========================================");
-console.error("[v2.3 Log] userSetup.js loaded. Synchronous Gesture Engine ENGAGED.");
+console.error("[v2.4 Log] userSetup.js loaded. Ghost-click fix applied.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v2.3", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v2.4", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
@@ -52,7 +52,7 @@ function userEleventySetup(eleventyConfig) {
       });
 
       // ==========================================
-      // 阶段 B：注入高性能交互卡片 (去除异步焦点延迟)
+      // 阶段 B：注入高性能交互卡片
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
@@ -65,28 +65,24 @@ function userEleventySetup(eleventyConfig) {
                 const [isInteractive, setIsInteractive] = React.useState(false);
                 const iframeRef = React.useRef(null);
 
-                // 核心控制函数：处理点击并在同一个宏任务中同步完成焦点转移
                 const toggleInteraction = React.useCallback((e) => {
                   e.preventDefault(); 
                   e.stopPropagation(); 
                   
                   const willBeInteractive = !isInteractive;
-                  setIsInteractive(willBeInteractive); // 触发 React 更新
+                  setIsInteractive(willBeInteractive); 
 
-                  // [V2.3 关键修复]：不使用 useEffect，不使用 setTimeout。
-                  // 趁着浏览器的 "User Gesture" 还在生效期，立刻强夺焦点！
                   if (willBeInteractive && iframeRef.current) {
                       try {
                           const cw = iframeRef.current.contentWindow;
                           if (cw) {
-                              // 将焦点压实到内部视口
                               if (cw.document && cw.document.documentElement) {
                                   cw.document.documentElement.setAttribute('tabindex', '-1');
                                   cw.document.documentElement.focus({ preventScroll: true });
                               }
                               cw.focus();
                           }
-                      } catch (err) { /* SOP 兜底 */ }
+                      } catch (err) {}
                       iframeRef.current.focus();
                   } else if (!willBeInteractive) {
                       if (document.activeElement === iframeRef.current) {
@@ -100,9 +96,8 @@ function userEleventySetup(eleventyConfig) {
                   style: { position: "relative", width: "100%", height: "100%", boxSizing: "border-box", pointerEvents: "none" }
                 },
                   React.createElement("button", {
-                    // 同时监听 PointerDown 和 Click 以兼容不同设备的物理手势判定
+                    // [V2.4 修复]：只使用 onPointerDown，彻底杜绝 onClick 引起的双重触发闪烁
                     onPointerDown: toggleInteraction,
-                    onClick: toggleInteraction,
                     style: { 
                       position: "absolute", top: "8px", right: "8px", zIndex: 50, 
                       padding: "5px 10px", 
