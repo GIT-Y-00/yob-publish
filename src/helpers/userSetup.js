@@ -1,21 +1,21 @@
 /**
- * Excalidraw React Injector v2.8
- * * 修复焦点横跳 Bug：剔除互斥的外部 DOM 焦点抢夺。
- * * 精准对标 V3.0 探针发现的滚动祖先 (BODY)。
+ * Excalidraw React Injector V2.10
+ * * 修复焦点撞墙 Bug：引入安全延迟，等待 pointer-events: auto 渲染完成。
+ * * 修复绝缘体 Bug：为 iframe 的 body 动态注入 tabindex="-1" 并强行聚焦。
  */
 
 console.error("=========================================");
-console.error("[v2.8 Log] userSetup.js loaded. Pure Focus Engine ENGAGED.");
+console.error("[V2.10 Log] userSetup.js loaded. Async Focus Engine ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v2.8", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v2.10", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
 
       // ==========================================
-      // 阶段 A：路径雷达与清洗
+      // 阶段 A：路径雷达与清洗 (稳定版逻辑)
       // ==========================================
       const linkMap = {};
       const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
@@ -73,23 +73,23 @@ function userEleventySetup(eleventyConfig) {
                   setIsInteractive(willBeInteractive); 
 
                   if (willBeInteractive && iframeRef.current) {
-                      let focusSuccess = false;
-                      try {
-                          const cw = iframeRef.current.contentWindow;
-                          if (cw) {
-                              // [V2.8 修复]：直接将焦点给到内部 Window 和 Body，绝不反向聚焦外部 DOM
-                              cw.focus();
-                              if (cw.document && cw.document.body) {
-                                  cw.document.body.focus({ preventScroll: true });
+                      // [V2.10 核心修复] 给予浏览器 50ms 时间将 pointer-events 从 none 切换为 auto
+                      setTimeout(() => {
+                          try {
+                              const cw = iframeRef.current.contentWindow;
+                              if (cw && cw.document) {
+                                  const targetNode = cw.document.body || cw.document.documentElement;
+                                  // 强行把绝缘体变为可聚焦元素
+                                  targetNode.setAttribute('tabindex', '-1');
+                                  // 精准聚焦
+                                  targetNode.focus({ preventScroll: true });
                               }
-                              focusSuccess = true;
-                          }
-                      } catch (err) {}
-                      
-                      // 只有在同源策略拦截，无法进入内部时，才兜底给外部 iframe 标签
-                      if (!focusSuccess) {
+                          } catch (err) {}
+                          
+                          // 兜底外层聚焦
                           iframeRef.current.focus();
-                      }
+                      }, 50);
+
                   } else if (!willBeInteractive) {
                       if (document.activeElement === iframeRef.current) {
                           iframeRef.current.blur();
