@@ -1,17 +1,15 @@
 /**
- * Excalidraw Link Fixer & Iframe Prepper v1.0
- * * 继承 v0.3 的链接清洗功能。
- * * 尝试过但放弃的方案：试图在此阶段直接注入 <iframe> 字符串。由于 Excalidraw 
- * 是客户端 Canvas/React 渲染，强行修改 JSON 结构会导致渲染引擎崩溃。
- * 因此，本文件专注于提供纯净的 URL，将 DOM 替换工作交由前端 njk 脚本处理。
+ * Excalidraw Link Fixer v1.1
+ * * 尝试过但失败的方案 (v1.0)：输出相对路径 /Vault/...
+ * 失败原因：Excalidraw 拒绝为相对路径生成 iframe，而是降级为 Canvas 上的文字画块。
+ * * 当前策略：生成伪造的 https 绝对路径，诱骗 Excalidraw 生成 iframe。
  */
-
 console.error("=========================================");
-console.error("[v1.0 Log] userSetup.js is active. Prepping URLs for iframe insertion...");
+console.error("[v1.1 Log] userSetup.js is injecting Trojan URLs...");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v1.0", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v1.1", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       let matchCount = 0;
       const regex = /\blink\s*:\s*(["'])(.*?)\1/g;
@@ -31,11 +29,12 @@ function userEleventySetup(eleventyConfig) {
             filename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
         }
 
-        const fixedUrl = `/Vault/${filename}/`;
+        // 【v1.1 核心修改】伪造一个以 https:// 开头的网址，骗取 iframe 生成
+        const fakeAbsoluteUrl = `https://dg-local-embed.com/Vault/${filename}/`;
         
-        console.error(`[v1.0 Log] Configured URL for embed: ${fixedUrl}`);
+        console.error(`[v1.1 Log] Forged Trojan URL: ${fakeAbsoluteUrl}`);
         
-        return `link:${quote}${fixedUrl}${quote}`;
+        return `link:${quote}${fakeAbsoluteUrl}${quote}`;
       });
 
       return newContent;
