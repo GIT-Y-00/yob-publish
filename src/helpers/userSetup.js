@@ -1,21 +1,20 @@
 /**
- * Excalidraw React Injector V2.10
- * * 修复焦点撞墙 Bug：引入安全延迟，等待 pointer-events: auto 渲染完成。
- * * 修复绝缘体 Bug：为 iframe 的 body 动态注入 tabindex="-1" 并强行聚焦。
+ * Excalidraw React Injector V2.11
+ * * 保持 V2.10 的异步聚焦引擎，配合 V2.11 的极致防吞滚轮策略。
  */
 
 console.error("=========================================");
-console.error("[V2.10 Log] userSetup.js loaded. Async Focus Engine ENGAGED.");
+console.error("[V2.11 Log] userSetup.js loaded. Async Focus Engine ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v2.10", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v2.11", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
 
       // ==========================================
-      // 阶段 A：路径雷达与清洗 (稳定版逻辑)
+      // 阶段 A：路径雷达与清洗
       // ==========================================
       const linkMap = {};
       const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
@@ -73,20 +72,16 @@ function userEleventySetup(eleventyConfig) {
                   setIsInteractive(willBeInteractive); 
 
                   if (willBeInteractive && iframeRef.current) {
-                      // [V2.10 核心修复] 给予浏览器 50ms 时间将 pointer-events 从 none 切换为 auto
                       setTimeout(() => {
                           try {
                               const cw = iframeRef.current.contentWindow;
                               if (cw && cw.document) {
                                   const targetNode = cw.document.body || cw.document.documentElement;
-                                  // 强行把绝缘体变为可聚焦元素
                                   targetNode.setAttribute('tabindex', '-1');
-                                  // 精准聚焦
                                   targetNode.focus({ preventScroll: true });
                               }
                           } catch (err) {}
                           
-                          // 兜底外层聚焦
                           iframeRef.current.focus();
                       }, 50);
 

@@ -2,21 +2,22 @@
 (function() {
     if (window !== window.top) {
         document.documentElement.classList.add('is-in-iframe');
-        console.error("[V2.10 Log] Iframe mode. Synthetic Hover-Scroll Engine ENGAGED.");
+        console.error("[V2.11 Log] Iframe mode. High-Performance Scroll Engine ENGAGED.");
 
-        // 监听滚轮，强行接管物理滚动
+        const scrollTarget = document.scrollingElement || document.documentElement || document.body;
+        
         window.addEventListener('wheel', function(e) {
-            // 获取真正的滚动承载容器 (兼容不同浏览器的标准)
-            const scrollTarget = document.scrollingElement || document.body;
-            
-            if (scrollTarget) {
-                scrollTarget.scrollBy({
-                    top: e.deltaY,
-                    left: e.deltaX,
-                    behavior: 'auto' // 保持原生无延迟手感
-                });
+            // [V2.11 核心修复 1] 拦截并吃掉原生的滚轮事件，防止与父级容器发生“抢夺”
+            if (e.cancelable) {
+                e.preventDefault();
             }
-        }, { passive: true }); // passive 保证不阻塞主线程，顺滑无比
+
+            // [V2.11 核心修复 2] 弃用会被动画打断的 scrollBy，直接对底层滚动像素属性 (scrollTop) 进行绝对赋值
+            // 这保证了鼠标滚几格，像素就精准移动多少，绝不吞输入！
+            scrollTarget.scrollTop += e.deltaY;
+            scrollTarget.scrollLeft += e.deltaX;
+
+        }, { passive: false }); // 必须是 false 才能使用 preventDefault
     }
 })();
 </script>

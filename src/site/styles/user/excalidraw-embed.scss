@@ -1,9 +1,18 @@
 /**
- * Excalidraw Embedded Iframe Styles V2.10
- * * 保持纯净隐身，坚决保护 BODY 的原生滚动上下文。
+ * Excalidraw Embedded Iframe Styles V2.11 (Scroll Optimization)
+ * * 配合 V2.11 NJK 引擎，强制剔除阻碍连续滚动的 CSS 动画属性。
  */
 
 html.is-in-iframe {
+    /* [V2.11 核心修复] 强制关闭平滑滚动，防止打断 JS 的高频位移指令 */
+    scroll-behavior: auto !important;
+    
+    body {
+        scroll-behavior: auto !important;
+        background-color: transparent !important;
+    }
+
+    /* 纯净隐身 */
     .filetree-wrapper,
     .sidebar,
     .sidebar-left,
@@ -13,9 +22,5 @@ html.is-in-iframe {
     footer,
     nav {
         display: none !important;
-    }
-
-    body {
-        background-color: transparent !important;
     }
 }
