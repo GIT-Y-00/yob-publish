@@ -1,9 +1,38 @@
 <script>
 (function() {
-    // 核心判断：如果处于内嵌状态
     if (window !== window.top) {
         document.documentElement.classList.add('is-in-iframe');
-        console.log("[v2.8] Iframe mode activated. Hiding external UI.");
+        console.error("=========================================");
+        console.error("[v4.0 Probe] Iframe loaded. Initiating Scroll Diagnostics.");
+        console.error("=========================================");
+
+        // 监听 iframe 内部的滚轮事件
+        window.addEventListener('wheel', function(e) {
+            // 探针 1：记录当前浏览器的安全授权状态
+            const isTrusted = e.isTrusted; // 是否为真实的物理鼠标行为？
+            const defaultPrevented = e.defaultPrevented; // 是否被其他插件的 JS 拦截？
+            const hasActivation = navigator.userActivation ? navigator.userActivation.hasBeenActive : 'Unknown';
+
+            console.error(`[v4.0 Probe] Wheel Fired! Trusted: ${isTrusted}, Prevented: ${defaultPrevented}, UserActivated (Has Clicked): ${hasActivation}`);
+
+            // 探针 2（核心实验）：如果浏览器判定用户没有激活该 iframe（尚未点击），
+            // 我们尝试使用 JS 引擎强行驱动页面滚动（绕过原生滚动条机制）
+            if (hasActivation === false) {
+                console.error("[v4.0 Probe] Native scroll likely blocked by browser security. Attempting JS Synthetic Scroll...");
+                
+                // 尝试寻找正确的滚动容器（基于 V3.0 的日志，应该是 body 或 html）
+                const scrollTarget = document.documentElement.scrollHeight > document.documentElement.clientHeight 
+                                     ? document.documentElement 
+                                     : document.body;
+
+                // 注入 JS 滚动指令
+                scrollTarget.scrollBy({
+                    top: e.deltaY,
+                    left: e.deltaX,
+                    behavior: 'auto' // 保持原生滚动的手感
+                });
+            }
+        }, { passive: true }); // 使用 passive 保证不阻塞页面主线程
     }
 })();
 </script>
