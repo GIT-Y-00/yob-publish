@@ -1,32 +1,14 @@
 /* 自定义：src/site/styles/user/excalidraw-fullscreen.scss */
 
 /**
- * Excalidraw Outer Fullscreen Styles V6.0
- * * 包含 V4.1 的极简透明全屏按钮。
- * * [V6.0 升级] 彻底重构 excalidraw-wrapper 的默认响应式比例，完美适配手机到 4K。
+ * Excalidraw Outer Fullscreen Styles V4.1
+ * * 目标：控制 excalidraw-wrapper 的全屏状态与控制按钮样式。
+ * * [V4.1 更新]：移除突兀的红色警告背景，退出全屏按钮统一为极简线条白色设计。
  */
 
-/* 1. 外层容器：响应式宽高与居中 (V6.0 核心更新) */
+/* 1. 为外层容器提供相对定位基准，以便按钮吸附 */
 .excalidraw-wrapper {
     position: relative; 
-    
-    /* 宽度重构：使用比例而非绝对值 */
-    width: 96% !important;           /* 占据正文容器的绝大部分，留出极窄的边距 */
-    max-width: 1600px !important;    /* 在 4K/带鱼屏下设定物理封顶，避免画面拉得过长 */
-    margin: 2rem auto !important;    /* 上下保留 2rem 的呼吸空间，左右自动完美居中 */
-    
-    /* 高度重构：跟随屏幕可视区域动态变化 */
-    height: 70vh !important;         /* 默认占据屏幕 70% 的高度，看着非常大气 */
-    min-height: 450px !important;    /* 手机端兜底高度，保证有足够的物理空间绘图 */
-    max-height: 1000px !important;   /* 超大屏高度封顶 */
-    
-    /* 视觉优化：给默认状态的画布加一层精致的圆角和阴影，与背景剥离 */
-    border-radius: 12px !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
-    overflow: hidden !important;     /* 确保内部画布不会溢出圆角 */
-    
-    /* 过渡动画：让退出全屏时尺寸恢复得更丝滑 */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 2. 全屏按钮的默认悬浮样式 */
@@ -74,22 +56,23 @@
     background-color: var(--background-primary, #1e1e1e) !important;
 }
 
-/* 4. 全屏状态下的退出按钮：极简线条白色 */
+/* 4. [V4.1 核心更新] 全屏状态下的退出按钮：极简线条白色 */
 .excalidraw-wrapper.is-fullscreen .dg-excalidraw-fs-btn {
     position: fixed;
     top: 20px;
     right: 20px;
     
+    /* 极简透明设计 */
     background-color: transparent; 
-    color: #ffffff; 
-    border: 1px solid rgba(255, 255, 255, 0.4); 
+    color: #ffffff; /* 纯白 X 图标 */
+    border: 1px solid rgba(255, 255, 255, 0.4); /* 白色线框 */
     box-shadow: none;
-    opacity: 0.5; 
+    opacity: 0.5; /* 默认半透明，降低存在感不打扰绘图 */
 }
 
 .excalidraw-wrapper.is-fullscreen .dg-excalidraw-fs-btn:hover {
     opacity: 1;
-    background-color: rgba(255, 255, 255, 0.1); 
-    border-color: #ffffff; 
+    background-color: rgba(255, 255, 255, 0.1); /* 鼠标悬停时微微泛起白色高光 */
+    border-color: #ffffff; /* 线框变亮 */
     transform: scale(1.05);
 }
