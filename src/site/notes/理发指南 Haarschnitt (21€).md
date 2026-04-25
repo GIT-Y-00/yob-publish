@@ -1,7 +1,9 @@
 ---
-{"dg-publish":true,"permalink":"/理发指南 Haarschnitt (21€)/","updated":"2026-04-25T20:07:17.087+02:00","dg-note-properties":{}}
+{"dg-publish":true,"permalink":"/理发指南 Haarschnitt (21€)/","updated":"2026-04-25T21:52:59.200+02:00","dg-note-properties":{}}
 ---
 
+
+![testimage3.png](/img/user/testimage3.png)
 
 Hallo! Ich spreche kaum Deutsch. Hier sind meine Wünsche.
 
