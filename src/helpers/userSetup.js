@@ -1,24 +1,24 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V8.4 (The Clean Dictionary Edition)
- * * 包含 V7.2 深度嵌套与 V8.3 万能语法修复。
- * * [V8.4 终极重构] 彻底废除基于锚文本(text)的字典录入，切断“毒字典”污染源。
- * * 仅通过精准解析 URL 物理路径来构建 linkMap，根除错误跳转与画板“取景框”重叠假象。
+ * Excalidraw React Injector V8.5 (The Bulletproof Edition)
+ * * 包含 V7.2 深度嵌套支持与 V8.4 纯净字典。
+ * * [V8.5 终极重构] 引入基于沙盒机制的防弹级 JSON 解析器。先锁定闭合字符串，再清洗 HTML，
+ * * 从物理层面绝对阻断正则越界吞噬，彻底根除画板链接互换、内容错位与破碎图标的 Bug。
  */
 
 console.error("=========================================");
-console.error("[V8.4 Log] userSetup.js loaded. Clean Dictionary ENGAGED.");
+console.error("[V8.5 Log] userSetup.js loaded. Bulletproof JSON Parser ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v8.4", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v8.5", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
 
       // ==========================================
-      // 阶段 A：纯净路径雷达 (V8.4 拔毒版)
+      // 阶段 A：纯净路径雷达
       // ==========================================
       const linkMap = {};
       const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
@@ -26,17 +26,13 @@ function userEleventySetup(eleventyConfig) {
       
       while ((match = anchorRegex.exec(content)) !== null) {
         const href = match[1];
-        
-        // 拒绝将无效的 /404 死链录入字典库
-        if (href.includes('404')) continue;
+        if (href.includes('404')) continue; // 屏蔽死链
         
         const parts = href.split('/').filter(p => p);
         if (parts.length > 0) {
-            // [V8.4 核心] 绝对不使用 match[2] 的文本！只提取真实的物理路径名
             let filename = decodeURIComponent(parts[parts.length - 1]);
             linkMap[filename] = href;
             
-            // 为了增强鲁棒性，同时存入一个剥离了后缀的干净版本
             let cleanName = filename.replace(/\.(md|svg|excalidraw)+$/i, '');
             if (cleanName && cleanName !== filename) {
                 linkMap[cleanName] = href;
@@ -45,15 +41,27 @@ function userEleventySetup(eleventyConfig) {
       }
 
       // ==========================================
-      // 阶段 B：万能语法修复引擎
+      // 阶段 B：防弹级语法修复引擎 (V8.5 沙盒隔离版)
       // ==========================================
-      fixedContent = fixedContent.replace(/"(\w+)"\s*:\s*"(<a\b[^>]*>)([^<]*)(<\/a>)"/gi, function(match, key, openTag, innerText, closeTag) {
-          let cleanText = innerText.trim();
-          return `"${key}": "${cleanText}"`;
+      // 1. 使用严格遵守 JSON 转义规则的正则，精准锁定每一个独立的 "key": "value"
+      const jsonStringRegex = /"(?:[^"\\]|\\.)*"\s*:\s*"(?:[^"\\]|\\.)*"/g;
+      
+      fixedContent = fixedContent.replace(jsonStringRegex, function(sandboxMatch) {
+          // 2. 只有在这个绝对安全的沙盒内，如果发现了 HTML 标签，才进行清洗
+          if (sandboxMatch.includes('<a ') && sandboxMatch.includes('</a>')) {
+              let splitIndex = sandboxMatch.indexOf(':');
+              let keyPart = sandboxMatch.substring(0, splitIndex);
+              let valPart = sandboxMatch.substring(splitIndex + 1);
+              
+              // 剥离 HTML 标签，留下干净纯文本，彻底消除 JS 崩溃隐患
+              let cleanVal = valPart.replace(/<[^>]+>/g, '');
+              return keyPart + ':' + cleanVal;
+          }
+          return sandboxMatch;
       });
 
       // ==========================================
-      // 阶段 C：终极路由解析器 (安全查表版)
+      // 阶段 C：终极路由解析器
       // ==========================================
       const dataRegex = /(["']?)link\1\s*:\s*(["'])(.*?)\2/g;
       
@@ -63,21 +71,24 @@ function userEleventySetup(eleventyConfig) {
             return matchedStr;
         }
 
-        // 1. 剔除左右括号（修复 [1234...]]）和别名
-        let baseFilename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
+        // 剔除前后可能残留的错乱中括号 [ ]
+        let baseFilename = innerLink.replace(/^[\[\]]+|[\[\]]+$/g, '').split('|')[0].trim();
         if (!baseFilename) return matchedStr;
 
-        // 2. 建立多维候选名单 (仅清理干扰后缀)
+        // 构建排他性候选名单
         let candidates = [
             baseFilename,                                          
             baseFilename.replace(/\.svg$/i, ''),                   
             baseFilename.replace(/\.md$/i, ''),                    
             baseFilename.replace(/(\.md|\.svg)+$/i, '')           
         ];
+        
+        // 数组去重
+        candidates = [...new Set(candidates)];
 
         let realPath = null;
 
-        // 3. 轰炸式精确查找
+        // 精确轰炸查找
         for (let candidate of candidates) {
             if (linkMap[candidate]) {
                 realPath = linkMap[candidate];
@@ -85,7 +96,7 @@ function userEleventySetup(eleventyConfig) {
             }
         }
 
-        // 4. 轰炸式模糊(Slug)查找
+        // 模糊 Slug 查找
         if (!realPath) {
             for (let candidate of candidates) {
                 let targetSlug = candidate.toLowerCase().replace(/\s+/g, '-');
@@ -99,7 +110,7 @@ function userEleventySetup(eleventyConfig) {
             }
         }
         
-        // 5. 终极回退方案
+        // 终极回退方案
         let finalPath = realPath;
         if (!finalPath) {
             let cleanFallback = baseFilename.replace(/(\.md|\.svg)+$/i, '');
