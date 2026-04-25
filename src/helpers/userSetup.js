@@ -1,17 +1,18 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V9.0 (The Sandbox Paradigm)
- * * [V9.0 范式革命] 听从用户核心思路，彻底放弃对被 MD 编译器污染的嵌入 JSON 进行正则修补。
- * * 采用沙盒替换法：扫描 HTML 中的错乱嵌入块，直接用 iframe 替换并指向完美的单文件渲染页！
+ * Excalidraw React Injector V9.1 (The Complete Ecosystem)
+ * * [V9.1 拨乱反正] 恢复 V8.4 的万能语法修复引擎 (Syntax Healer)。
+ * 主画板自身的 JSON 依然会被原生插件破坏（生成带未转义引号的 <a> 标签），必须修复语法才能渲染内部要素。
+ * * [集成 V9.0] 保留沙盒替换法 (The Sandboxer)，物理隔离 MD 文档中的嵌套画板。
  */
 
 console.error("=========================================");
-console.error("[V9.0 Log] userSetup.js loaded. Sandbox Paradigm ENGAGED.");
+console.error("[V9.1 Log] userSetup.js loaded. The Complete Ecosystem ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v9.0", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v9.1", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
@@ -40,16 +41,14 @@ function userEleventySetup(eleventyConfig) {
       }
 
       // ==========================================
-      // 阶段 B：沙盒替换引擎 (The Sandboxer) - V9.0 核心！
-      // 寻找 MD 文档中被原生插件污染的嵌入块，将其彻底物理抹除，替换为完美的 Iframe！
+      // 阶段 B：沙盒替换引擎 (The Sandboxer)
+      // 寻找 MD 文档中被原生插件污染的嵌套块，物理抹除，替换为干净的 Iframe！
       // ==========================================
-      // 正则解析：匹配 <a class="filename"> 标题 -> 中间的包裹 div -> 导致崩溃的 ReactDOM.render 脚本
       const embedRegex = /(<a[^>]*class="filename"[^>]*>\s*([^<]+)\s*<\/a>)((?:(?!<a[^>]*class="filename")[\s\S])*?)<div\s+id="([^"]+)"\s*><\/div>\s*<script>(?:(?!<\/script>)[\s\S])*?ReactDOM\.render(?:(?!<\/script>)[\s\S])*?<\/script>/gi;
 
       fixedContent = fixedContent.replace(embedRegex, function(match, aTag, filename, middleHtml, divId) {
           filename = filename.trim();
 
-          // 1. 通过候选名单找出这个画板单文件所在的完美独立网址
           let candidates = [
               filename,                                          
               filename.replace(/\.svg$/i, ''),                   
@@ -81,15 +80,21 @@ function userEleventySetup(eleventyConfig) {
               finalPath = `/${cleanFallback}/`;
           }
 
-          console.log(`[V9.0 Sandbox] 将破碎的嵌入转换为沙盒 Iframe: ${filename} -> ${finalPath}`);
-
-          // 2. 物理毁灭与重生：保留原有的文件名标题，把下面一整坨会导致崩溃的死代码全部用干净的 iframe 替换！
-          // className 设置为 excalidraw-wrapper 以完美继承你之前写好的 V7.x 样式体系！
+          console.log(`[V9.1 Sandbox] 隔离破碎嵌套块 -> ${finalPath}`);
           return `${aTag}${middleHtml}<div class="excalidraw-wrapper"><iframe src="${finalPath}" class="dg-embedded-excalidraw" loading="lazy" style="width:100%; height:100%; border:none;"></iframe></div>`;
       });
 
       // ==========================================
-      // 阶段 C：安全路由解析器 (仅服务于未被沙盒化的单文件)
+      // 阶段 C：万能语法修复引擎 (Syntax Healer) - V9.1 救命回归！
+      // 捕获主画板 JSON 属性（"link", "text"）中未转义的 <a class="internal-link">，修复 JS 语法崩溃。
+      // ==========================================
+      fixedContent = fixedContent.replace(/"(\w+)"\s*:\s*"(<a\b[^>]*>)([^<]*)(<\/a>)"/gi, function(match, key, openTag, innerText, closeTag) {
+          let cleanText = innerText.trim();
+          return `"${key}": "${cleanText}"`;
+      });
+
+      // ==========================================
+      // 阶段 D：安全路由解析器 (服务于主画板内部链接)
       // ==========================================
       const dataRegex = /(["']?)link\1\s*:\s*(["'])(.*?)\2/g;
       
@@ -137,7 +142,7 @@ function userEleventySetup(eleventyConfig) {
       });
 
       // ==========================================
-      // 阶段 D：注入高性能交互卡片 (服务于单文件的主画板)
+      // 阶段 E：注入高性能交互卡片 (主画板核心渲染层)
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
