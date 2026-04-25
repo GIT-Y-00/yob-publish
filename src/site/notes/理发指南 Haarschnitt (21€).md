@@ -1,7 +1,9 @@
 ---
-{"dg-publish":true,"permalink":"/理发指南 Haarschnitt (21€)/","updated":"2026-04-25T19:42:21.892+02:00","dg-note-properties":{}}
+{"dg-publish":true,"permalink":"/理发指南 Haarschnitt (21€)/","updated":"2026-04-25T21:52:59.200+02:00","dg-note-properties":{}}
 ---
 
+
+![testimage3.png](/img/user/testimage3.png)
 
 Hallo! Ich spreche kaum Deutsch. Hier sind meine Wünsche.
 
@@ -74,7 +76,6 @@ Thank you!!
 	* 打薄：发尾最后 1/3，去掉约 20% 发量，不要打薄发根。
 	* 刘海：温和的点剪，不要一刀切，也不要剪太缺。
 
-十分感谢！
-
+十分感谢
 
 ![testimage2.png](/img/user/testimage2.png)
