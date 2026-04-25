@@ -1,5 +1,5 @@
 ---
-{"dg-publish":true,"permalink":"/理发指南 Haarschnitt (21€)/","updated":"2026-04-25T19:23:09.183+02:00","dg-note-properties":{}}
+{"dg-publish":true,"permalink":"/理发指南 Haarschnitt (21€)/","updated":"2026-04-25T19:42:21.892+02:00","dg-note-properties":{}}
 ---
 
 
@@ -75,3 +75,6 @@ Thank you!!
 	* 刘海：温和的点剪，不要一刀切，也不要剪太缺。
 
 十分感谢！
+
+
+![testimage2.png](/img/user/testimage2.png)
