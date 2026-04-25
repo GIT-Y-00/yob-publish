@@ -1,24 +1,24 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V8.3 (The Ultimate Edition)
- * * 包含 V7.2 深度嵌套支持。
- * * [V8.3 核心修复 1] 升级万能 Syntax Healer，修复 JSON 中 "text" 和 "link" 属性引发的全局语法崩溃。
- * * [V8.3 核心修复 2] 移除候选字典对 .excalidraw 的危险剥离，彻底解决同名文件撞车跳转错误。
+ * Excalidraw React Injector V8.4 (The Clean Dictionary Edition)
+ * * 包含 V7.2 深度嵌套与 V8.3 万能语法修复。
+ * * [V8.4 终极重构] 彻底废除基于锚文本(text)的字典录入，切断“毒字典”污染源。
+ * * 仅通过精准解析 URL 物理路径来构建 linkMap，根除错误跳转与画板“取景框”重叠假象。
  */
 
 console.error("=========================================");
-console.error("[V8.3 Log] userSetup.js loaded. Universal Syntax Healer ENGAGED.");
+console.error("[V8.4 Log] userSetup.js loaded. Clean Dictionary ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v8.3", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v8.4", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
 
       // ==========================================
-      // 阶段 A：路径雷达与免疫清洗
+      // 阶段 A：纯净路径雷达 (V8.4 拔毒版)
       // ==========================================
       const linkMap = {};
       const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
@@ -27,26 +27,28 @@ function userEleventySetup(eleventyConfig) {
       while ((match = anchorRegex.exec(content)) !== null) {
         const href = match[1];
         
-        // 拒绝将无效的 /404 死链录入字典库，防止污染查询
+        // 拒绝将无效的 /404 死链录入字典库
         if (href.includes('404')) continue;
-        
-        const text = match[2].replace(/<[^>]+>/g, '').trim(); 
-        if (text) linkMap[text] = href; 
         
         const parts = href.split('/').filter(p => p);
         if (parts.length > 0) {
-           linkMap[decodeURIComponent(parts[parts.length - 1])] = href;
+            // [V8.4 核心] 绝对不使用 match[2] 的文本！只提取真实的物理路径名
+            let filename = decodeURIComponent(parts[parts.length - 1]);
+            linkMap[filename] = href;
+            
+            // 为了增强鲁棒性，同时存入一个剥离了后缀的干净版本
+            let cleanName = filename.replace(/\.(md|svg|excalidraw)+$/i, '');
+            if (cleanName && cleanName !== filename) {
+                linkMap[cleanName] = href;
+            }
         }
       }
 
       // ==========================================
-      // 阶段 B：万能语法修复引擎 (Universal Syntax Healer)
+      // 阶段 B：万能语法修复引擎
       // ==========================================
-      // [V8.3 核心] 捕获 *所有* JSON 属性（"link", "text" 等）中的未转义 <a class="internal-link">
-      // 使用 [^<]* 严格界定文本内容，绝不吞噬任何相邻的 JSON 坐标或属性！
       fixedContent = fixedContent.replace(/"(\w+)"\s*:\s*"(<a\b[^>]*>)([^<]*)(<\/a>)"/gi, function(match, key, openTag, innerText, closeTag) {
           let cleanText = innerText.trim();
-          // 完美还原安全的纯文本 JSON 属性
           return `"${key}": "${cleanText}"`;
       });
 
@@ -57,17 +59,15 @@ function userEleventySetup(eleventyConfig) {
       
       fixedContent = fixedContent.replace(dataRegex, function(matchedStr, keyQuote, valQuote, innerLink) {
         
-        // 保护外部链接、锚点和绝对路径
         if (!innerLink || innerLink.startsWith('http') || innerLink.startsWith('#') || innerLink.startsWith('/')) {
             return matchedStr;
         }
 
-        // 1. 剔除左右括号（修复类似 [1234testlink1234]] 的残缺符号）和别名
+        // 1. 剔除左右括号（修复 [1234...]]）和别名
         let baseFilename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
         if (!baseFilename) return matchedStr;
 
-        // 2. [V8.3 核心防御] 建立多维候选名单
-        // 严禁在此处剥离 .excalidraw！只清洗 .md 和 .svg 这种干扰后缀
+        // 2. 建立多维候选名单 (仅清理干扰后缀)
         let candidates = [
             baseFilename,                                          
             baseFilename.replace(/\.svg$/i, ''),                   
@@ -99,7 +99,7 @@ function userEleventySetup(eleventyConfig) {
             }
         }
         
-        // 5. 终极回退方案：带着正确的文件夹和后缀生成链接
+        // 5. 终极回退方案
         let finalPath = realPath;
         if (!finalPath) {
             let cleanFallback = baseFilename.replace(/(\.md|\.svg)+$/i, '');
