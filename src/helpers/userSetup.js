@@ -1,17 +1,17 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V8.3 (The Split-Track Ecosystem)
- * * 继承 V8.2 的高精度多维寻址逻辑。
- * * 继承 V8.2.1 的【分轨物理隔离】架构。
- * * [V8.3 核心破局] 引入阶段0的“前置毒素清理” (Pre-Healer)，在分轨前彻底铲平错误注入在 JSON 属性内的 HTML/Script 巨型嵌块，根治主画板的语法白屏崩溃。
+ * Excalidraw React Injector V8.4 (The Markdown Link Interceptor)
+ * * 继承 V8.3 的【分轨架构】与【前置毒素清理】。
+ * * [V8.4 核心修复] 在寻址阶段（applyV83Logic）新增对标准 Markdown 链接 [文本](URL) 的拦截。
+ * * 丢弃被底层引擎附带的物理路径括号 (URL)，防止正则误伤导致的畸形寻址拼接。
  */
 
 console.error("=========================================");
-console.error("[V8.3 Log] userSetup.js loaded. Split-Track Ecosystem ENGAGED.");
+console.error("[V8.4 Log] userSetup.js loaded. Markdown Link Interceptor ENGAGED.");
 console.error("=========================================");
 
-// 核心处理逻辑 (V8.2 原汁原味的完美寻址)
+// 核心处理逻辑 (V8.4 增强版寻址)
 function applyV83Logic(htmlBlock, modeName, linkMap) {
     let processed = htmlBlock;
 
@@ -21,7 +21,15 @@ function applyV83Logic(htmlBlock, modeName, linkMap) {
             return matchedStr;
         }
 
-        let baseFilename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
+        // ==========================================
+        // [V8.4 新增防线]：拦截 Markdown 标准链接格式 [文件](路径)
+        // 提取方括号内的真实文件名，直接丢弃后面的物理路径
+        // ==========================================
+        let mdLinkMatch = innerLink.match(/\[([^\]]+)\]\([^)]+\)/);
+        let rawTarget = mdLinkMatch ? mdLinkMatch[1] : innerLink;
+
+        // 1. 剔除左右括号（修复残留）和别名
+        let baseFilename = rawTarget.replace(/[\[\]]/g, '').split('|')[0].trim();
         if (!baseFilename) return matchedStr;
 
         let candidates = [
@@ -56,7 +64,7 @@ function applyV83Logic(htmlBlock, modeName, linkMap) {
             finalPath = `/${cleanFallback}/`;
         }
 
-        console.log(`[${modeName}] Link 寻址成功: ${baseFilename} ---> ${finalPath}`);
+        console.log(`[${modeName}] Link 寻址: ${baseFilename} ---> ${finalPath}`);
         return `${keyQuote}link${keyQuote}: ${valQuote}${finalPath}${valQuote}`;
     });
 
@@ -64,22 +72,19 @@ function applyV83Logic(htmlBlock, modeName, linkMap) {
 }
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v8.3", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v8.4", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
 
       // ==========================================
-      // 阶段 0：前置毒素清理 (Pre-Healer) - V8.3 核心
-      // 匹配被错误注入 JSON 键值对中的 HTML 块（无论是纯 <a> 还是带着 <script> 的怪兽）
-      // 将其强行压扁成纯文本，确保 JSON 语法安全，同时防止分轨引擎误捕获 JSON 内部数据！
+      // 阶段 0：前置毒素清理 (Pre-Healer)
       // ==========================================
       fixedContent = fixedContent.replace(/"(\w+)"\s*:\s*"(<a\b[\s\S]*?(?:<\/a>|<\/script>))"/gi, function(match, key, htmlChunk) {
           let textMatch = htmlChunk.match(/>([^<]+)<\/a>/i);
           let cleanText = textMatch ? textMatch[1].trim() : "";
           return `"${key}": "${cleanText}"`;
       });
-
 
       // ==========================================
       // 阶段 A：路径雷达与免疫清洗
@@ -105,7 +110,6 @@ function userEleventySetup(eleventyConfig) {
       // 阶段 B：分轨物理隔离 (Split Architecture)
       // ==========================================
       let embeds = [];
-      // 此时因为阶段 0 的清理，这里的正则只会捕获到真正存在于 MD 正文流中的嵌入块
       const embedRegex = /(<a[^>]*class="filename"[^>]*>\s*[^<]+\s*<\/a>(?:(?!<a[^>]*class="filename")[\s\S])*?<div\s+id="[^"]+"\s*><\/div>\s*<script>(?:(?!<\/script>)[\s\S])*?ReactDOM\.render(?:(?!<\/script>)[\s\S])*?<\/script>)/gi;
 
       fixedContent = fixedContent.replace(embedRegex, function(embedMatch) {
@@ -113,7 +117,7 @@ function userEleventySetup(eleventyConfig) {
           return `__DG_EMBED_BLOCK_${embeds.length - 1}__`;
       });
 
-      // 处理情况 2 (单文件区/已净化的主干 JSON)
+      // 处理情况 2 (单文件区)
       fixedContent = applyV83Logic(fixedContent, "情况2-单文件", linkMap);
 
       // 处理情况 1 (MD 嵌入区)
