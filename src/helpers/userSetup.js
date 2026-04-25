@@ -1,14 +1,13 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V9.0 (The Great Unification)
- * * 听取建议，放弃对已损坏的内嵌 JSON 进行无意义的正则修补。
- * * [V9.0 核心] 引入大一统引擎：在 Markdown 页面中拦截官方破碎的内嵌渲染块，
- * * 将其强制替换为指向“完美独立页面”的 Iframe，实现渲染机制的终极统一。
+ * Excalidraw React Injector V9.0 (The Sandbox Paradigm)
+ * * [V9.0 范式革命] 听从用户核心思路，彻底放弃对被 MD 编译器污染的嵌入 JSON 进行正则修补。
+ * * 采用沙盒替换法：扫描 HTML 中的错乱嵌入块，直接用 iframe 替换并指向完美的单文件渲染页！
  */
 
 console.error("=========================================");
-console.error("[V9.0 Log] userSetup.js loaded. Unification Engine ENGAGED.");
+console.error("[V9.0 Log] userSetup.js loaded. Sandbox Paradigm ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
@@ -16,91 +15,129 @@ function userEleventySetup(eleventyConfig) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
-      // 获取当前正在构建的页面路径，用于防循环检测
-      let currentPath = outputPath.replace(/\\/g, '/').toLowerCase();
 
       // ==========================================
-      // 阶段 A：纯净字典收集
+      // 阶段 A：纯净路径雷达 (构建全站真理字典)
       // ==========================================
       const linkMap = {};
       const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
       let match;
+      
       while ((match = anchorRegex.exec(content)) !== null) {
         const href = match[1];
-        if (href.includes('404')) continue; // 拒收死链
+        if (href.includes('404')) continue;
+        
         const parts = href.split('/').filter(p => p);
         if (parts.length > 0) {
-           let filename = decodeURIComponent(parts[parts.length - 1]);
-           linkMap[filename] = href;
-           let cleanName = filename.replace(/\.(md|svg|excalidraw)+$/i, '');
-           if (cleanName) linkMap[cleanName] = href;
+            let filename = decodeURIComponent(parts[parts.length - 1]);
+            linkMap[filename] = href;
+            
+            let cleanName = filename.replace(/\.(md|svg|excalidraw)+$/i, '');
+            if (cleanName && cleanName !== filename) {
+                linkMap[cleanName] = href;
+            }
         }
       }
 
       // ==========================================
-      // 阶段 B：大一统引擎 (Unification Engine)
+      // 阶段 B：沙盒替换引擎 (The Sandboxer) - V9.0 核心！
+      // 寻找 MD 文档中被原生插件污染的嵌入块，将其彻底物理抹除，替换为完美的 Iframe！
       // ==========================================
-      // 匹配官方的内嵌渲染 DOM 块 (div + render script)
-      const embedRegex = /<div id="([^"]+excalidraw(?:\.md)?\d*)"><\/div>\s*<script>[\s\S]*?ReactDOM\.render\([\s\S]*?<\/script>/gi;
-      
-      fixedContent = fixedContent.replace(embedRegex, function(matchStr, id) {
-          // 从 ID 提取干净的文件名 (例如 testnewexcalidraw.md1 -> testnew)
-          let rawName = id.replace(/excalidraw(?:\.md)?\d*$/i, '');
-          
-          // 【核心防御】：如果我们正在构建的就是这个画板的独立页面本身，千万不要替换！保持原生完美渲染。
-          if (currentPath.includes(rawName.toLowerCase())) {
-              return matchStr; 
-          }
+      // 正则解析：匹配 <a class="filename"> 标题 -> 中间的包裹 div -> 导致崩溃的 ReactDOM.render 脚本
+      const embedRegex = /(<a[^>]*class="filename"[^>]*>\s*([^<]+)\s*<\/a>)((?:(?!<a[^>]*class="filename")[\s\S])*?)<div\s+id="([^"]+)"\s*><\/div>\s*<script>(?:(?!<\/script>)[\s\S])*?ReactDOM\.render(?:(?!<\/script>)[\s\S])*?<\/script>/gi;
 
-          // 否则，说明这是一篇嵌了画板的 Markdown 笔记，查找它的独立页面真实地址
-          let url = "";
-          const targetSlug = rawName.toLowerCase().replace(/\s+/g, '-');
-          for (const key in linkMap) {
-              const keySlug = key.toLowerCase().replace(/\s+/g, '-');
-              if (keySlug === targetSlug || keySlug === targetSlug + '-excalidraw' || keySlug === targetSlug + '-excalidraw-md') {
-                  url = linkMap[key];
-                  break;
+      fixedContent = fixedContent.replace(embedRegex, function(match, aTag, filename, middleHtml, divId) {
+          filename = filename.trim();
+
+          // 1. 通过候选名单找出这个画板单文件所在的完美独立网址
+          let candidates = [
+              filename,                                          
+              filename.replace(/\.svg$/i, ''),                   
+              filename.replace(/\.md$/i, ''),                    
+              filename.replace(/(\.md|\.svg)+$/i, '')           
+          ];
+
+          let realPath = null;
+          for (let candidate of candidates) {
+              if (linkMap[candidate]) { realPath = linkMap[candidate]; break; }
+          }
+          
+          if (!realPath) {
+              for (let candidate of candidates) {
+                  let targetSlug = candidate.toLowerCase().replace(/\s+/g, '-');
+                  for (const key in linkMap) {
+                      if (key.toLowerCase().replace(/\s+/g, '-') === targetSlug) {
+                          realPath = linkMap[key];
+                          break;
+                      }
+                  }
+                  if (realPath) break;
               }
           }
-          if (!url) url = `/${rawName}/`;
 
-          console.log(`[V9.0 大一统引擎] 拦截到内嵌画板 '${rawName}'，已切换为统一 Iframe 模式 -> ${url}`);
+          let finalPath = realPath;
+          if (!finalPath) {
+              let cleanFallback = filename.replace(/(\.md|\.svg)+$/i, '');
+              finalPath = `/${cleanFallback}/`;
+          }
 
-          // 降维打击：直接返回一个我们写好样式的完美 Iframe
-          return `<div class="excalidraw-wrapper"><iframe src="${url}" class="excalidraw-embed-iframe" loading="lazy" style="width: 100%; height: 100%; border: none; min-height: 500px;"></iframe></div>`;
+          console.log(`[V9.0 Sandbox] 将破碎的嵌入转换为沙盒 Iframe: ${filename} -> ${finalPath}`);
+
+          // 2. 物理毁灭与重生：保留原有的文件名标题，把下面一整坨会导致崩溃的死代码全部用干净的 iframe 替换！
+          // className 设置为 excalidraw-wrapper 以完美继承你之前写好的 V7.x 样式体系！
+          return `${aTag}${middleHtml}<div class="excalidraw-wrapper"><iframe src="${finalPath}" class="dg-embedded-excalidraw" loading="lazy" style="width:100%; height:100%; border:none;"></iframe></div>`;
       });
 
       // ==========================================
-      // 阶段 C：独立页面原生修复 (仅服务于完美渲染的 Standalone 页面)
+      // 阶段 C：安全路由解析器 (仅服务于未被沙盒化的单文件)
       // ==========================================
-      // 修复可能存在的遗留转义错误，确保无 Console 报错
-      fixedContent = fixedContent.replace(/"(\w+)"\s*:\s*"(<a\b[^>]*>)([^<]*)(<\/a>)"/gi, function(m, key, openTag, innerText) {
-          return `"${key}": "${innerText.trim()}"`;
-      });
-
       const dataRegex = /(["']?)link\1\s*:\s*(["'])(.*?)\2/g;
+      
       fixedContent = fixedContent.replace(dataRegex, function(matchedStr, keyQuote, valQuote, innerLink) {
-         if (!innerLink || innerLink.startsWith('http') || innerLink.startsWith('#') || innerLink.startsWith('/')) return matchedStr;
-         let baseFilename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
-         if (!baseFilename) return matchedStr;
-         let candidates = [baseFilename, baseFilename.replace(/\.svg$/i, ''), baseFilename.replace(/\.md$/i, ''), baseFilename.replace(/(\.md|\.svg)+$/i, '')];
-         let realPath = null;
-         for (let c of candidates) { if (linkMap[c]) { realPath = linkMap[c]; break; } }
-         if (!realPath) {
-             for (let c of candidates) {
-                 let slug = c.toLowerCase().replace(/\s+/g, '-');
-                 for (let k in linkMap) {
-                     if (k.toLowerCase().replace(/\s+/g, '-') === slug) { realPath = linkMap[k]; break; }
-                 }
-                 if (realPath) break;
-             }
-         }
-         let finalPath = realPath ? realPath : `/${baseFilename.replace(/(\.md|\.svg)+$/i, '')}/`;
-         return `${keyQuote}link${keyQuote}: ${valQuote}${finalPath}${valQuote}`;
+        
+        if (!innerLink || innerLink.startsWith('http') || innerLink.startsWith('#') || innerLink.startsWith('/')) {
+            return matchedStr;
+        }
+
+        let baseFilename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
+        if (!baseFilename) return matchedStr;
+
+        let candidates = [
+            baseFilename,                                          
+            baseFilename.replace(/\.svg$/i, ''),                   
+            baseFilename.replace(/\.md$/i, ''),                    
+            baseFilename.replace(/(\.md|\.svg)+$/i, '')           
+        ];
+
+        let realPath = null;
+        for (let candidate of candidates) {
+            if (linkMap[candidate]) { realPath = linkMap[candidate]; break; }
+        }
+
+        if (!realPath) {
+            for (let candidate of candidates) {
+                let targetSlug = candidate.toLowerCase().replace(/\s+/g, '-');
+                for (const key in linkMap) {
+                    if (key.toLowerCase().replace(/\s+/g, '-') === targetSlug) {
+                        realPath = linkMap[key];
+                        break;
+                    }
+                }
+                if (realPath) break;
+            }
+        }
+        
+        let finalPath = realPath;
+        if (!finalPath) {
+            let cleanFallback = baseFilename.replace(/(\.md|\.svg)+$/i, '');
+            finalPath = `/${cleanFallback}/`;
+        }
+
+        return `${keyQuote}link${keyQuote}: ${valQuote}${finalPath}${valQuote}`;
       });
 
       // ==========================================
-      // 阶段 D：注入高性能交互卡片 (全屏按钮等)
+      // 阶段 D：注入高性能交互卡片 (服务于单文件的主画板)
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
@@ -130,8 +167,10 @@ function userEleventySetup(eleventyConfig) {
                                   targetNode.focus({ preventScroll: true });
                               }
                           } catch (err) {}
+                          
                           iframeRef.current.focus();
                       }, 50);
+
                   } else if (!willBeInteractive) {
                       if (document.activeElement === iframeRef.current) {
                           iframeRef.current.blur();
