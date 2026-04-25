@@ -1,50 +1,53 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V9.1 (The Robust Hydration)
- * * 修复 V9.0 中由于正则过度假设双括号导致图片映射表为空的 Bug。
- * * [V9.1 核心修复] 采用全兼容扫描器，精准提取 # Embedded Files 下的纯文本文件名。
+ * Excalidraw React Injector V9.2 (The Cryptographic Hydration Engine)
+ * * 继承 V8.4 的所有完美寻址与分轨架构。
+ * * [V9.2 降维打击] 放弃在被破坏的 Markdown 中寻找文本映射。
+ * * 启用 Node.js 原生 Crypto 模块，直接计算 /img/user/ 目录下实体图片的 SHA-1 哈希值，
+ * * 利用物理加密指纹与 JSON 中的 fileId 进行绝对匹配，生成 Base64 数据强行注入 React！
  */
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto'); // [V9.2 新增] 原生加密计算模块
 
 console.error("=========================================");
-console.error("[V9.1 Log] userSetup.js loaded. Robust Hydration Engine ENGAGED.");
+console.error("[V9.2 Log] userSetup.js loaded. Cryptographic Hydration ENGAGED.");
 console.error("=========================================");
 
 // ==========================================
-// [V9.1 核心修复] 全兼容图片密码本扫描
+// [V9.2 核心] 密码学图像指纹库
 // ==========================================
-let globalImageMap = {};
-let isImageMapBuilt = false;
+let globalCryptoMap = {};
+let isCryptoMapBuilt = false;
 
-function buildGlobalImageMap() {
-    if (isImageMapBuilt) return;
-    const notesDir = path.join(process.cwd(), 'src', 'site', 'notes');
+function buildCryptoImageMap() {
+    if (isCryptoMapBuilt) return;
+    
+    // 直接扫描 Digital Garden 存放上传图片的目标文件夹
+    const imgDir = path.join(process.cwd(), 'src', 'site', 'img', 'user');
 
-    function scanDir(dir) {
+    function scanDirForHashes(dir) {
         if (!fs.existsSync(dir)) return;
         const files = fs.readdirSync(dir);
         for (const file of files) {
             const fullPath = path.join(dir, file);
             if (fs.statSync(fullPath).isDirectory()) {
-                scanDir(fullPath);
-            } else if (fullPath.endsWith('.excalidraw.md')) {
-                const content = fs.readFileSync(fullPath, 'utf8');
-                const embedIndex = content.lastIndexOf('# Embedded Files');
-                if (embedIndex !== -1) {
-                    const embedBlock = content.substring(embedIndex);
-                    
-                    // [V9.1 修复] 移除对 [[ ]] 的强制要求，直接捕获冒号后面的整行文本
-                    const regex = /([a-f0-9]{40})\s*:\s*([^\n\r]+)/g;
-                    let match;
-                    while ((match = regex.exec(embedBlock)) !== null) {
-                        let rawName = match[2].trim();
-                        // 兼容处理：抹除可能存在的左右双括号和别名
-                        rawName = rawName.replace(/^\[\[|\]\]$/g, '').split('|')[0].trim();
+                scanDirForHashes(fullPath);
+            } else {
+                // 仅对图像文件进行哈希计算
+                if (/\.(png|jpe?g|gif|svg|webp)$/i.test(fullPath)) {
+                    try {
+                        // 提取文件的物理二进制数据
+                        const fileBuffer = fs.readFileSync(fullPath);
+                        // 计算标准 SHA-1 哈希值 (严格对应 Excalidraw 的 40位 fileId)
+                        const hash = crypto.createHash('sha1').update(fileBuffer).digest('hex');
                         
-                        globalImageMap[match[1]] = rawName;
+                        // 建立绝对匹配：[哈希值] -> [物理路径]
+                        globalCryptoMap[hash] = fullPath;
+                    } catch (err) {
+                        console.error(`无法计算图片哈希: ${fullPath}`, err);
                     }
                 }
             }
@@ -52,15 +55,16 @@ function buildGlobalImageMap() {
     }
     
     try {
-        scanDir(notesDir);
-        isImageMapBuilt = true;
-        console.log(`[V9.1 Image Registry] 成功建立映射表，找到 ${Object.keys(globalImageMap).length} 张画板图片。`);
+        scanDirForHashes(imgDir);
+        isCryptoMapBuilt = true;
+        console.log(`[V9.2 Crypto Registry] 成功建立哈希指纹库，计算了 ${Object.keys(globalCryptoMap).length} 张实体图片的 SHA-1。`);
     } catch (e) {
-        console.error("图片映射表建立失败:", e);
+        console.error("哈希指纹库建立失败:", e);
     }
 }
 
 
+// V8.4 纯净寻址逻辑 (保持不动)
 function applyV83Logic(htmlBlock, modeName, linkMap) {
     let processed = htmlBlock;
     const dataRegex = /(["']?)link\1\s*:\s*(["'])(.*?)\2/g;
@@ -115,15 +119,16 @@ function applyV83Logic(htmlBlock, modeName, linkMap) {
 }
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v9.1", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v9.2", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
-      buildGlobalImageMap();
+      // 1. 初始化密码学引擎，扫描服务器实体图片
+      buildCryptoImageMap();
         
       let fixedContent = content;
 
       // ==========================================
-      // 图像榨汁机 (Base64 Hydration)
+      // [V9.2 图像榨汁机] 扫描 HTML 找 fileId，通过 SHA-1 匹配并生成 Base64
       // ==========================================
       const fileIdRegex = /"fileId"\s*:\s*"([a-f0-9]{40})"/gi;
       let injectedFiles = {};
@@ -131,15 +136,18 @@ function userEleventySetup(eleventyConfig) {
       
       while ((fMatch = fileIdRegex.exec(fixedContent)) !== null) {
           const fileId = fMatch[1];
-          if (globalImageMap[fileId] && !injectedFiles[fileId]) {
-              const filename = globalImageMap[fileId];
-              const imgPath = path.join(process.cwd(), 'src', 'site', 'img', 'user', filename);
+          // 如果指纹库中有这个 SHA-1 对应的图片物理路径
+          if (globalCryptoMap[fileId] && !injectedFiles[fileId]) {
+              const imgPath = globalCryptoMap[fileId];
               
-              if (fs.existsSync(imgPath)) {
-                  const ext = path.extname(filename).toLowerCase().replace('.', '');
+              try {
+                  const ext = path.extname(imgPath).toLowerCase().replace('.', '');
                   const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : (ext === 'svg' ? 'image/svg+xml' : 'image/png');
+                  
+                  // 直接读取指纹库验证通过的实体文件，转为 Base64
                   const base64 = fs.readFileSync(imgPath, 'base64');
                   
+                  // 组装 Excalidraw 所需的 files 字典
                   injectedFiles[fileId] = {
                       mimeType: mime,
                       id: fileId,
@@ -147,8 +155,8 @@ function userEleventySetup(eleventyConfig) {
                       created: Date.now(),
                       lastRetrieved: Date.now()
                   };
-              } else {
-                  console.log(`[V9.1 缺图警告] 源码存在图片暗号，但在服务器 /img/user/ 中未找到实体文件 (${filename})。请确认 MD 文件中是否添加了 ![[${filename}]] 以强制上传。`);
+              } catch (err) {
+                  console.error(`无法转换图片为 Base64: ${imgPath}`, err);
               }
           }
       }
@@ -203,7 +211,7 @@ function userEleventySetup(eleventyConfig) {
       }
 
       // ==========================================
-      // 阶段 C：注入高性能交互卡片 (含动态注水)
+      // 阶段 C：注入高性能交互卡片 (含加密注水)
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
@@ -212,6 +220,7 @@ function userEleventySetup(eleventyConfig) {
           reactInitRegex,
           `((excalidrawProps) => {
               
+            // [V9.2 暴力注水] 将通过 SHA-1 物理验证的 Base64 图片数据强行塞入 React！
             const injectedImgData = ${injectedFilesJson};
             if (excalidrawProps.initialData && Object.keys(injectedImgData).length > 0) {
                 excalidrawProps.initialData.files = excalidrawProps.initialData.files || {};
