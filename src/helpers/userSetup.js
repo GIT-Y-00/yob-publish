@@ -14,7 +14,7 @@ console.error("=========================================");
 function userEleventySetup(eleventyConfig) {
   eleventyConfig.addTransform("fix-excalidraw-links-v8.2", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
-      
+      return content; // 🚨 debug:暂停所有清洗逻辑，保留原生输出
       let fixedContent = content;
 
       // ==========================================
