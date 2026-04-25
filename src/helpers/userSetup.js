@@ -1,18 +1,18 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V8.1
- * * 包含 V7.2 的深度嵌套支持。
- * * [V8.1 终极路由引擎] 引入多维候选名单 (Multi-Candidate Resolver) 与 404 免疫，
- * * 完美解决嵌套画板因后缀强力清洗导致与 linkMap 字典脱节的 404 寻址灾难。
+ * Excalidraw React Injector V8.2
+ * * 包含 V7.2 深度嵌套与 V8.1 多维路由寻址。
+ * * [V8.2 终极修复] 重写 Syntax Healer 正则表达式，使用精准边界防护，
+ * * 彻底解决因正则吞噬跨行 JSON 导致的元素坐标重叠、链接错位与 404 寻址灾难。
  */
 
 console.error("=========================================");
-console.error("[V8.1 Log] userSetup.js loaded. Multi-Candidate Resolver ENGAGED.");
+console.error("[V8.2 Log] userSetup.js loaded. Precision Syntax Healer ENGAGED.");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v8.1", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v8.2", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
@@ -27,7 +27,7 @@ function userEleventySetup(eleventyConfig) {
       while ((match = anchorRegex.exec(content)) !== null) {
         const href = match[1];
         
-        // [V8.1 核心防御] 拒绝将无效的 /404 死链录入字典库，防止污染查询
+        // 拒绝将无效的 /404 死链录入字典库，防止污染查询
         if (href.includes('404')) continue;
         
         const text = match[2].replace(/<[^>]+>/g, '').trim(); 
@@ -40,22 +40,24 @@ function userEleventySetup(eleventyConfig) {
       }
 
       // ==========================================
-      // 阶段 B：语法修复引擎 (Syntax Healer)
+      // 阶段 B：语法修复引擎 (V8.2 精准边界防护版)
       // ==========================================
-      fixedContent = fixedContent.replace(/"link"\s*:\s*"(<a\b[\s\S]*?<\/a>)"/gi, function(match, htmlStr) {
-          const textMatch = htmlStr.match(/>([^<]+)<\/a>/i);
-          const filename = textMatch ? textMatch[1].trim() : "";
-          return `"link": "${filename}"`;
+      // [V8.2 核心] 摒弃贪婪匹配，使用精准的 HTML 标签开闭合探测，绝不吞噬相邻的 JSON 属性！
+      fixedContent = fixedContent.replace(/"link"\s*:\s*"(<a\b[^>]*>)(.*?)(<\/a>)"/gi, function(match, openTag, innerText, closeTag) {
+          // 剥离可能存在的内部嵌套标签，提取纯净文本
+          let cleanText = innerText.replace(/<[^>]+>/g, '').trim();
+          return `"link": "${cleanText}"`;
       });
 
       // ==========================================
-      // 阶段 C：终极路由解析器 (V8.1 多维查表)
+      // 阶段 C：终极路由解析器 (多维查表)
       // ==========================================
       const dataRegex = /(["']?)link\1\s*:\s*(["'])(.*?)\2/g;
       
       fixedContent = fixedContent.replace(dataRegex, function(matchedStr, keyQuote, valQuote, innerLink) {
         
-        if (!innerLink || innerLink.startsWith('http') || innerLink.startsWith('#')) {
+        // 保护外部链接、锚点和已经解析好的绝对路径
+        if (!innerLink || innerLink.startsWith('http') || innerLink.startsWith('#') || innerLink.startsWith('/')) {
             return matchedStr;
         }
 
@@ -63,23 +65,21 @@ function userEleventySetup(eleventyConfig) {
         let baseFilename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
         if (!baseFilename) return matchedStr;
 
-        // 2. [V8.1 降维打击] 建立多维候选名单，应对各类字典残留
+        // 2. 建立多维候选名单，应对各类字典残留
         let candidates = [
-            baseFilename,                                          // 原始状态 (可能匹配极特殊别名)
-            baseFilename.replace(/\.svg$/i, ''),                   // 剥离单层 svg -> B.excalidraw.md
-            baseFilename.replace(/\.md$/i, ''),                    // 剥离单层 md -> B.excalidraw.svg
-            baseFilename.replace(/(\.md|\.svg)+$/i, ''),           // 剥离干扰项 -> B.excalidraw
-            baseFilename.replace(/(\.md|\.svg|\.excalidraw)+$/i, '') // 极简核心 -> B
+            baseFilename,                                          
+            baseFilename.replace(/\.svg$/i, ''),                   
+            baseFilename.replace(/\.md$/i, ''),                    
+            baseFilename.replace(/(\.md|\.svg)+$/i, ''),           
+            baseFilename.replace(/(\.md|\.svg|\.excalidraw)+$/i, '') 
         ];
 
         let realPath = null;
-        let matchedCandidate = "";
 
         // 3. 轰炸式精确查找
         for (let candidate of candidates) {
             if (linkMap[candidate]) {
                 realPath = linkMap[candidate];
-                matchedCandidate = candidate;
                 break;
             }
         }
@@ -91,7 +91,6 @@ function userEleventySetup(eleventyConfig) {
                 for (const key in linkMap) {
                     if (key.toLowerCase().replace(/\s+/g, '-') === targetSlug) {
                         realPath = linkMap[key];
-                        matchedCandidate = key;
                         break;
                     }
                 }
@@ -99,21 +98,18 @@ function userEleventySetup(eleventyConfig) {
             }
         }
         
-        // 5. 终极回退方案：如果连全站字典都找不到，用最干净的名字强行拼接
+        // 5. 终极回退方案
         let finalPath = realPath;
         if (!finalPath) {
             let cleanFallback = baseFilename.replace(/(\.md|\.svg)+$/i, '');
             finalPath = `/${cleanFallback}/`;
         }
-        
-        // 构建雷达：让你在终端清晰看到它命中了哪个候选词
-        console.log(`[V8.1 Radar] Target: ${baseFilename} | Found via: ${matchedCandidate || 'Fallback'} | Path: ${finalPath}`);
 
         return `${keyQuote}link${keyQuote}: ${valQuote}${finalPath}${valQuote}`;
       });
 
       // ==========================================
-      // 阶段 D：注入高性能交互卡片 (继承 V7.2 深度嵌套逻辑)
+      // 阶段 D：注入高性能交互卡片 (深度嵌套支持)
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
