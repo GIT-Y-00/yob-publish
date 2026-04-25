@@ -1,11 +1,11 @@
 ---
-{"dg-publish":true,"permalink":"/理发指南 Haarschnitt (21€)/","updated":"2026-04-25T18:54:08.209+02:00","dg-note-properties":{}}
+{"dg-publish":true,"permalink":"/理发指南 Haarschnitt (21€)/","updated":"2026-04-25T18:57:21.134+02:00","dg-note-properties":{}}
 ---
 
 
 Hallo! Ich spreche kaum Deutsch. Hier sind meine Wünsche.
 
-![Pasted image 20251209135845.png](/img/user/Pasted%20image%2020251209135845.png)
+![testimage.png](/img/user/testimage.png)
 
 Hallo! Ich habe asiatisches, recht dickes und störrisches Haar. Wenn es falsch geschnitten wird, steht es leider direkt ab. Daher habe ich hier meine genauen Wünsche aufgeschrieben:
 
