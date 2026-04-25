@@ -1,207 +1,35 @@
 /* 自定义：src/helpers/userSetup.js */
 
-/**
- * Excalidraw React Injector V8.2
- * * 包含 V7.2 深度嵌套与 V8.1 多维路由寻址。
- * * [V8.2 终极修复] 重写 Syntax Healer 正则表达式，使用精准边界防护，
- * * 彻底解决因正则吞噬跨行 JSON 导致的元素坐标重叠、链接错位与 404 寻址灾难。
- */
+const fs = require('fs');
+const path = require('path');
 
 console.error("=========================================");
-console.error("[V8.2 Log] userSetup.js loaded. Precision Syntax Healer ENGAGED.");
+console.error("🚨 [DIAGNOSTIC PROBE] 诊断探针已启动！暂停所有修复，准备抓取内存快照...");
 console.error("=========================================");
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v8.2", function(content, outputPath) {
+  eleventyConfig.addTransform("debug-dump", function(content, outputPath) {
+    
     if (outputPath && outputPath.endsWith(".html")) {
-      let fixedContent = content;
-
-      // ==========================================
-      // 阶段 A：路径雷达与免疫清洗
-      // ==========================================
-      const linkMap = {};
-      const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
-      let match;
       
-      while ((match = anchorRegex.exec(content)) !== null) {
-        const href = match[1];
-        
-        // 拒绝将无效的 /404 死链录入字典库，防止污染查询
-        if (href.includes('404')) continue;
-        
-        const text = match[2].replace(/<[^>]+>/g, '').trim(); 
-        if (text) linkMap[text] = href; 
-        
-        const parts = href.split('/').filter(p => p);
-        if (parts.length > 0) {
-           linkMap[decodeURIComponent(parts[parts.length - 1])] = href;
-        }
+      // 我们只抓取包含了这几个关键字的案发现场页面
+      if (content.includes("testnew.excalidraw") || content.includes("法术瞎") || content.includes("4321")) {
+          
+          // 在你博客的根目录生成一个 dump 文件
+          const dumpFileName = `DEBUG_DUMP_${path.basename(outputPath)}`;
+          const dumpFilePath = path.join(process.cwd(), dumpFileName);
+          
+          try {
+              // 强制将内存中的原始字符串无损写入本地文件
+              fs.writeFileSync(dumpFilePath, content, "utf8");
+              console.log(`\n📸 [探针快照成功] 抓取到可疑文件！已保存至项目根目录: ${dumpFileName}`);
+          } catch (err) {
+              console.error("探针写入失败:", err);
+          }
       }
-
-      // ==========================================
-      // 阶段 B：语法修复引擎 (V8.2 精准边界防护版)
-      // ==========================================
-      // [V8.2 核心] 摒弃贪婪匹配，使用精准的 HTML 标签开闭合探测，绝不吞噬相邻的 JSON 属性！
-      fixedContent = fixedContent.replace(/"link"\s*:\s*"(<a\b[^>]*>)(.*?)(<\/a>)"/gi, function(match, openTag, innerText, closeTag) {
-          // 剥离可能存在的内部嵌套标签，提取纯净文本
-          let cleanText = innerText.replace(/<[^>]+>/g, '').trim();
-          return `"link": "${cleanText}"`;
-      });
-
-      // ==========================================
-      // 阶段 C：终极路由解析器 (多维查表)
-      // ==========================================
-      const dataRegex = /(["']?)link\1\s*:\s*(["'])(.*?)\2/g;
       
-      fixedContent = fixedContent.replace(dataRegex, function(matchedStr, keyQuote, valQuote, innerLink) {
-        
-        // 保护外部链接、锚点和已经解析好的绝对路径
-        if (!innerLink || innerLink.startsWith('http') || innerLink.startsWith('#') || innerLink.startsWith('/')) {
-            return matchedStr;
-        }
-
-        // 1. 剔除括号和别名，得到初始基准名
-        let baseFilename = innerLink.replace(/[\[\]]/g, '').split('|')[0].trim();
-        if (!baseFilename) return matchedStr;
-
-        // 2. 建立多维候选名单，应对各类字典残留
-        let candidates = [
-            baseFilename,                                          
-            baseFilename.replace(/\.svg$/i, ''),                   
-            baseFilename.replace(/\.md$/i, ''),                    
-            baseFilename.replace(/(\.md|\.svg)+$/i, ''),           
-            baseFilename.replace(/(\.md|\.svg|\.excalidraw)+$/i, '') 
-        ];
-
-        let realPath = null;
-
-        // 3. 轰炸式精确查找
-        for (let candidate of candidates) {
-            if (linkMap[candidate]) {
-                realPath = linkMap[candidate];
-                break;
-            }
-        }
-
-        // 4. 轰炸式模糊(Slug)查找
-        if (!realPath) {
-            for (let candidate of candidates) {
-                let targetSlug = candidate.toLowerCase().replace(/\s+/g, '-');
-                for (const key in linkMap) {
-                    if (key.toLowerCase().replace(/\s+/g, '-') === targetSlug) {
-                        realPath = linkMap[key];
-                        break;
-                    }
-                }
-                if (realPath) break;
-            }
-        }
-        
-        // 5. 终极回退方案
-        let finalPath = realPath;
-        if (!finalPath) {
-            let cleanFallback = baseFilename.replace(/(\.md|\.svg)+$/i, '');
-            finalPath = `/${cleanFallback}/`;
-        }
-
-        return `${keyQuote}link${keyQuote}: ${valQuote}${finalPath}${valQuote}`;
-      });
-
-      // ==========================================
-      // 阶段 D：注入高性能交互卡片 (深度嵌套支持)
-      // ==========================================
-      const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
-      
-      if (reactInitRegex.test(fixedContent)) {
-        fixedContent = fixedContent.replace(
-          reactInitRegex,
-          `((excalidrawProps) => {
-            if (!window.DgExcalidrawWrapper) {
-              window.DgExcalidrawWrapper = function(props) {
-                const [isInteractive, setIsInteractive] = React.useState(false);
-                const iframeRef = React.useRef(null);
-
-                const toggleInteraction = React.useCallback((e) => {
-                  e.preventDefault(); 
-                  e.stopPropagation(); 
-                  
-                  const willBeInteractive = !isInteractive;
-                  setIsInteractive(willBeInteractive); 
-
-                  if (willBeInteractive && iframeRef.current) {
-                      setTimeout(() => {
-                          try {
-                              const cw = iframeRef.current.contentWindow;
-                              if (cw && cw.document) {
-                                  const targetNode = cw.document.body || cw.document.documentElement;
-                                  targetNode.setAttribute('tabindex', '-1');
-                                  targetNode.focus({ preventScroll: true });
-                              }
-                          } catch (err) {}
-                          
-                          iframeRef.current.focus();
-                      }, 50);
-
-                  } else if (!willBeInteractive) {
-                      if (document.activeElement === iframeRef.current) {
-                          iframeRef.current.blur();
-                      }
-                      window.focus();
-                  }
-                }, [isInteractive]);
-
-                return React.createElement("div", {
-                  style: { position: "relative", width: "100%", height: "100%", boxSizing: "border-box", pointerEvents: "none" }
-                },
-                  React.createElement("button", {
-                    onPointerDown: toggleInteraction,
-                    style: { 
-                      position: "absolute", top: "8px", right: "8px", zIndex: 50, 
-                      padding: "5px 10px", 
-                      background: isInteractive ? "rgba(239, 68, 68, 0.95)" : "rgba(59, 130, 246, 0.95)", 
-                      color: "white", 
-                      border: "none", borderRadius: "6px", 
-                      fontSize: "12px", fontWeight: "bold", cursor: "pointer", 
-                      pointerEvents: "auto", transition: "all 0.2s",
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
-                    }
-                  }, isInteractive ? "锁定滚动" : "开启交互"),
-
-                  React.createElement("iframe", {
-                    ref: iframeRef, 
-                    src: props.link,
-                    loading: "lazy",
-                    style: { 
-                      width: "100%", height: "100%", border: "none", borderRadius: "8px",
-                      boxShadow: isInteractive ? "0 0 0 3px #3b82f6 inset" : "0 4px 6px -1px rgba(0,0,0,0.1)",
-                      transition: "box-shadow 0.2s",
-                      pointerEvents: isInteractive ? "auto" : "none",
-                      background: "var(--background-primary, #fff)"
-                    }
-                  })
-                );
-              };
-            }
-
-            excalidrawProps.validateEmbeddable = function() { return true; };
-            excalidrawProps.renderEmbeddable = function(node) { 
-              if (node && node.link) { 
-                if (window.top !== window.self && window.top !== window.parent) {
-                  return React.createElement("div", { 
-                    style: { display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", background: "var(--background-secondary, #f8f9fa)", border: "2px dashed #d1d5db", borderRadius: "8px" } 
-                  }, React.createElement("a", { href: node.link, target: "_top", style: { color: "#3b82f6", textDecoration: "none", fontWeight: "bold", pointerEvents: "auto" } }, "🔗 深度嵌套，点击跳转"));
-                }
-                return React.createElement(window.DgExcalidrawWrapper, { link: node.link, key: node.id });
-              } 
-              return null; 
-            };
-
-            return React.createElement(ExcalidrawLib.Excalidraw, excalidrawProps);
-          })({`
-        );
-      }
-
-      return fixedContent;
+      // 探针模式下，直接返回原始代码，不进行任何修改
+      return content;
     }
     return content;
   });
