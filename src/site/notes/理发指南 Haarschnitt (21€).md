@@ -1,5 +1,5 @@
 ---
-{"dg-publish":true,"permalink":"/理发指南 Haarschnitt (21€)/","updated":"2026-04-25T19:18:36.081+02:00","dg-note-properties":{}}
+{"dg-publish":true,"permalink":"/理发指南 Haarschnitt (21€)/","updated":"2026-04-25T19:20:59.066+02:00","dg-note-properties":{}}
 ---
 
 
@@ -39,7 +39,7 @@ Hello! I speak hardly any German. Here are my requests.
 
 PLEASE READ CAREFULLY.
 
-![Pasted image 20251209135845.png](/img/user/Pasted%20image%2020251209135845.png)
+![testimage.png](/img/user/testimage.png)
 
 ATTENTION: **Asian Hair (Stiff/Hard/Coarse)**.
 
