@@ -1,34 +1,75 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V8.4 (The Markdown Link Interceptor)
- * * 继承 V8.3 的【分轨架构】与【前置毒素清理】。
- * * [V8.4 核心修复] 在寻址阶段（applyV83Logic）新增对标准 Markdown 链接 [文本](URL) 的拦截。
- * * 丢弃被底层引擎附带的物理路径括号 (URL)，防止正则误伤导致的畸形寻址拼接。
+ * Excalidraw React Injector V9.0 (The Hydration Engine)
+ * * 继承 V8.4 的所有完美寻址与分轨架构。
+ * * [V9.0 核心突破] 跨界文件系统读取：扫描原始 Markdown 提取图片密码本，
+ * * 并在构建期将实体图片转为 Base64，强行注入 React 的 files 字典，彻底消灭灰色图片框！
  */
 
+const fs = require('fs');
+const path = require('path');
+
 console.error("=========================================");
-console.error("[V8.4 Log] userSetup.js loaded. Markdown Link Interceptor ENGAGED.");
+console.error("[V9.0 Log] userSetup.js loaded. Base64 Hydration Engine ENGAGED.");
 console.error("=========================================");
 
-// 核心处理逻辑 (V8.4 增强版寻址)
+// ==========================================
+// [V9.0] 全局图片密码本 (只在构建初期扫描一次)
+// ==========================================
+let globalImageMap = {};
+let isImageMapBuilt = false;
+
+function buildGlobalImageMap() {
+    if (isImageMapBuilt) return;
+    const notesDir = path.join(process.cwd(), 'src', 'site', 'notes');
+
+    function scanDir(dir) {
+        if (!fs.existsSync(dir)) return;
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+            const fullPath = path.join(dir, file);
+            if (fs.statSync(fullPath).isDirectory()) {
+                scanDir(fullPath);
+            } else if (fullPath.endsWith('.excalidraw.md')) {
+                const content = fs.readFileSync(fullPath, 'utf8');
+                const embedIndex = content.lastIndexOf('# Embedded Files');
+                if (embedIndex !== -1) {
+                    const embedBlock = content.substring(embedIndex);
+                    // 匹配 40位哈希: [[文件名]]
+                    const regex = /([a-f0-9]{40})\s*:\s*\[\[(.*?)\]\]/gi;
+                    let match;
+                    while ((match = regex.exec(embedBlock)) !== null) {
+                        globalImageMap[match[1]] = match[2].split('|')[0].trim();
+                    }
+                }
+            }
+        }
+    }
+    
+    try {
+        scanDir(notesDir);
+        isImageMapBuilt = true;
+        console.log(`[V9.0 Image Registry] 成功建立映射表，找到 ${Object.keys(globalImageMap).length} 张画板图片。`);
+    } catch (e) {
+        console.error("图片映射表建立失败:", e);
+    }
+}
+
+
+// V8.4 寻址逻辑
 function applyV83Logic(htmlBlock, modeName, linkMap) {
     let processed = htmlBlock;
-
     const dataRegex = /(["']?)link\1\s*:\s*(["'])(.*?)\2/g;
+    
     processed = processed.replace(dataRegex, function(matchedStr, keyQuote, valQuote, innerLink) {
         if (!innerLink || innerLink.startsWith('http') || innerLink.startsWith('#') || innerLink.startsWith('/')) {
             return matchedStr;
         }
 
-        // ==========================================
-        // [V8.4 新增防线]：拦截 Markdown 标准链接格式 [文件](路径)
-        // 提取方括号内的真实文件名，直接丢弃后面的物理路径
-        // ==========================================
         let mdLinkMatch = innerLink.match(/\[([^\]]+)\]\([^)]+\)/);
         let rawTarget = mdLinkMatch ? mdLinkMatch[1] : innerLink;
 
-        // 1. 剔除左右括号（修复残留）和别名
         let baseFilename = rawTarget.replace(/[\[\]]/g, '').split('|')[0].trim();
         if (!baseFilename) return matchedStr;
 
@@ -64,7 +105,6 @@ function applyV83Logic(htmlBlock, modeName, linkMap) {
             finalPath = `/${cleanFallback}/`;
         }
 
-        console.log(`[${modeName}] Link 寻址: ${baseFilename} ---> ${finalPath}`);
         return `${keyQuote}link${keyQuote}: ${valQuote}${finalPath}${valQuote}`;
     });
 
@@ -72,13 +112,51 @@ function applyV83Logic(htmlBlock, modeName, linkMap) {
 }
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v8.4", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v9.0", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
+      // 确保构建期全局图片映射表已就绪
+      buildGlobalImageMap();
+        
       let fixedContent = content;
 
       // ==========================================
-      // 阶段 0：前置毒素清理 (Pre-Healer)
+      // [V9.0 图像榨汁机] 扫描 HTML 找 fileId，生成 Base64 字典
+      // ==========================================
+      const fileIdRegex = /"fileId"\s*:\s*"([a-f0-9]{40})"/gi;
+      let injectedFiles = {};
+      let fMatch;
+      
+      while ((fMatch = fileIdRegex.exec(fixedContent)) !== null) {
+          const fileId = fMatch[1];
+          if (globalImageMap[fileId] && !injectedFiles[fileId]) {
+              const filename = globalImageMap[fileId];
+              // Digital Garden 默认将上传的图片放在 src/site/img/user
+              const imgPath = path.join(process.cwd(), 'src', 'site', 'img', 'user', filename);
+              
+              if (fs.existsSync(imgPath)) {
+                  const ext = path.extname(filename).toLowerCase().replace('.', '');
+                  const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : (ext === 'svg' ? 'image/svg+xml' : 'image/png');
+                  const base64 = fs.readFileSync(imgPath, 'base64');
+                  
+                  // 拼装 Excalidraw 所需的 files 字典格式
+                  injectedFiles[fileId] = {
+                      mimeType: mime,
+                      id: fileId,
+                      dataURL: `data:${mime};base64,${base64}`,
+                      created: Date.now(),
+                      lastRetrieved: Date.now()
+                  };
+              } else {
+                  console.log(`[V9.0 缺图警告] 图片在源码有记录，但未找到实体文件 (请确认 MD 文件中是否有 ![[${filename}]] 强制上传): ${imgPath}`);
+              }
+          }
+      }
+      
+      const injectedFilesJson = JSON.stringify(injectedFiles);
+
+      // ==========================================
+      // 阶段 0：前置毒素清理
       // ==========================================
       fixedContent = fixedContent.replace(/"(\w+)"\s*:\s*"(<a\b[\s\S]*?(?:<\/a>|<\/script>))"/gi, function(match, key, htmlChunk) {
           let textMatch = htmlChunk.match(/>([^<]+)<\/a>/i);
@@ -107,7 +185,7 @@ function userEleventySetup(eleventyConfig) {
       }
 
       // ==========================================
-      // 阶段 B：分轨物理隔离 (Split Architecture)
+      // 阶段 B：分轨物理隔离
       // ==========================================
       let embeds = [];
       const embedRegex = /(<a[^>]*class="filename"[^>]*>\s*[^<]+\s*<\/a>(?:(?!<a[^>]*class="filename")[\s\S])*?<div\s+id="[^"]+"\s*><\/div>\s*<script>(?:(?!<\/script>)[\s\S])*?ReactDOM\.render(?:(?!<\/script>)[\s\S])*?<\/script>)/gi;
@@ -117,17 +195,15 @@ function userEleventySetup(eleventyConfig) {
           return `__DG_EMBED_BLOCK_${embeds.length - 1}__`;
       });
 
-      // 处理情况 2 (单文件区)
       fixedContent = applyV83Logic(fixedContent, "情况2-单文件", linkMap);
 
-      // 处理情况 1 (MD 嵌入区)
       for (let i = 0; i < embeds.length; i++) {
           let processedEmbed = applyV83Logic(embeds[i], "情况1-嵌入MD", linkMap);
           fixedContent = fixedContent.replace(`__DG_EMBED_BLOCK_${i}__`, processedEmbed);
       }
 
       // ==========================================
-      // 阶段 C：注入高性能交互卡片
+      // 阶段 C：注入高性能交互卡片 (集成 Base64 注水)
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
@@ -135,6 +211,14 @@ function userEleventySetup(eleventyConfig) {
         fixedContent = fixedContent.replace(
           reactInitRegex,
           `((excalidrawProps) => {
+              
+            // [V9.0 暴力注水] 将构建期生成的 Base64 图片数据强行塞入 React 初始状态！
+            const injectedImgData = ${injectedFilesJson};
+            if (excalidrawProps.initialData) {
+                excalidrawProps.initialData.files = excalidrawProps.initialData.files || {};
+                Object.assign(excalidrawProps.initialData.files, injectedImgData);
+            }
+
             if (!window.DgExcalidrawWrapper) {
               window.DgExcalidrawWrapper = function(props) {
                 const [isInteractive, setIsInteractive] = React.useState(false);
