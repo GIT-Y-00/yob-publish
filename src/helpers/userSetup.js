@@ -1,26 +1,20 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V8.2.1 (Split Architecture)
- * * 纯结构重塑，无任何逻辑修复。完美保留 V8.2 的状态。
- * * [核心重塑] 将【情况 1：MD 嵌套画板】与【情况 2：单独画板页面】在物理层面进行隔离与分轨处理，方便对比观察。
+ * Excalidraw React Injector V8.3 (The Split-Track Ecosystem)
+ * * 继承 V8.2 的高精度多维寻址逻辑。
+ * * 继承 V8.2.1 的【分轨物理隔离】架构。
+ * * [V8.3 核心破局] 引入阶段0的“前置毒素清理” (Pre-Healer)，在分轨前彻底铲平错误注入在 JSON 属性内的 HTML/Script 巨型嵌块，根治主画板的语法白屏崩溃。
  */
 
 console.error("=========================================");
-console.error("[V8.2.1 Log] userSetup.js loaded. Split Architecture ENGAGED.");
+console.error("[V8.3 Log] userSetup.js loaded. Split-Track Ecosystem ENGAGED.");
 console.error("=========================================");
 
-// 封装 V8.2 的核心处理逻辑，供情况 1 和情况 2 分别调用
-function applyV82Logic(htmlBlock, modeName, linkMap) {
+// 核心处理逻辑 (V8.2 原汁原味的完美寻址)
+function applyV83Logic(htmlBlock, modeName, linkMap) {
     let processed = htmlBlock;
 
-    // 阶段 B：语法修复引擎 (V8.2 原汁原味)
-    processed = processed.replace(/"link"\s*:\s*"(<a\b[^>]*>)(.*?)(<\/a>)"/gi, function(match, openTag, innerText, closeTag) {
-        let cleanText = innerText.replace(/<[^>]+>/g, '').trim();
-        return `"link": "${cleanText}"`;
-    });
-
-    // 阶段 C：终极路由解析器 (V8.2 原汁原味)
     const dataRegex = /(["']?)link\1\s*:\s*(["'])(.*?)\2/g;
     processed = processed.replace(dataRegex, function(matchedStr, keyQuote, valQuote, innerLink) {
         if (!innerLink || innerLink.startsWith('http') || innerLink.startsWith('#') || innerLink.startsWith('/')) {
@@ -62,9 +56,7 @@ function applyV82Logic(htmlBlock, modeName, linkMap) {
             finalPath = `/${cleanFallback}/`;
         }
 
-        // [重要] 这里会打印出是哪个情况触发了寻址！
-        console.log(`[${modeName}] Link 寻址: ${baseFilename} ---> ${finalPath}`);
-
+        console.log(`[${modeName}] Link 寻址成功: ${baseFilename} ---> ${finalPath}`);
         return `${keyQuote}link${keyQuote}: ${valQuote}${finalPath}${valQuote}`;
     });
 
@@ -72,13 +64,25 @@ function applyV82Logic(htmlBlock, modeName, linkMap) {
 }
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v8.2.1", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v8.3", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
       let fixedContent = content;
 
       // ==========================================
-      // 阶段 A：路径雷达与免疫清洗 (V8.2 原汁原味)
+      // 阶段 0：前置毒素清理 (Pre-Healer) - V8.3 核心
+      // 匹配被错误注入 JSON 键值对中的 HTML 块（无论是纯 <a> 还是带着 <script> 的怪兽）
+      // 将其强行压扁成纯文本，确保 JSON 语法安全，同时防止分轨引擎误捕获 JSON 内部数据！
+      // ==========================================
+      fixedContent = fixedContent.replace(/"(\w+)"\s*:\s*"(<a\b[\s\S]*?(?:<\/a>|<\/script>))"/gi, function(match, key, htmlChunk) {
+          let textMatch = htmlChunk.match(/>([^<]+)<\/a>/i);
+          let cleanText = textMatch ? textMatch[1].trim() : "";
+          return `"${key}": "${cleanText}"`;
+      });
+
+
+      // ==========================================
+      // 阶段 A：路径雷达与免疫清洗
       // ==========================================
       const linkMap = {};
       const anchorRegex = /<a[^>]*href=["'](\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
@@ -98,30 +102,28 @@ function userEleventySetup(eleventyConfig) {
       }
 
       // ==========================================
-      // 【分轨重塑核心区】
+      // 阶段 B：分轨物理隔离 (Split Architecture)
       // ==========================================
       let embeds = [];
-      // 匹配情况 1：宿主 MD 中由 <a class="filename"> 引入的嵌套区块
+      // 此时因为阶段 0 的清理，这里的正则只会捕获到真正存在于 MD 正文流中的嵌入块
       const embedRegex = /(<a[^>]*class="filename"[^>]*>\s*[^<]+\s*<\/a>(?:(?!<a[^>]*class="filename")[\s\S])*?<div\s+id="[^"]+"\s*><\/div>\s*<script>(?:(?!<\/script>)[\s\S])*?ReactDOM\.render(?:(?!<\/script>)[\s\S])*?<\/script>)/gi;
 
-      // 1. 将情况 1 (嵌入区) 从主干代码中提取并打上魔法标记
       fixedContent = fixedContent.replace(embedRegex, function(embedMatch) {
           embeds.push(embedMatch);
           return `__DG_EMBED_BLOCK_${embeds.length - 1}__`;
       });
 
-      // 2. 处理情况 2 (单文件区)：此时 fixedContent 里只剩下脱离了嵌套的主体代码
-      fixedContent = applyV82Logic(fixedContent, "情况2-单文件", linkMap);
+      // 处理情况 2 (单文件区/已净化的主干 JSON)
+      fixedContent = applyV83Logic(fixedContent, "情况2-单文件", linkMap);
 
-      // 3. 处理情况 1 (嵌入区)：对挖出来的嵌套代码单独跑逻辑，并填回魔法标记处
+      // 处理情况 1 (MD 嵌入区)
       for (let i = 0; i < embeds.length; i++) {
-          let processedEmbed = applyV82Logic(embeds[i], "情况1-嵌入MD", linkMap);
+          let processedEmbed = applyV83Logic(embeds[i], "情况1-嵌入MD", linkMap);
           fixedContent = fixedContent.replace(`__DG_EMBED_BLOCK_${i}__`, processedEmbed);
       }
 
-
       // ==========================================
-      // 阶段 D：注入高性能交互卡片 (V8.2 原汁原味)
+      // 阶段 C：注入高性能交互卡片
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
