@@ -1,11 +1,11 @@
 ---
-{"dg-publish":true,"permalink":"/理发指南 Haarschnitt (21€)/","updated":"2026-04-25T19:20:59.066+02:00","dg-note-properties":{}}
+{"dg-publish":true,"permalink":"/理发指南 Haarschnitt (21€)/","updated":"2026-04-25T19:23:09.183+02:00","dg-note-properties":{}}
 ---
 
 
 Hallo! Ich spreche kaum Deutsch. Hier sind meine Wünsche.
 
-![testimage.png](/img/user/testimage.png)
+![testimage1.png](/img/user/testimage1.png)
 
 Hallo! Ich habe asiatisches, recht dickes und störrisches Haar. Wenn es falsch geschnitten wird, steht es leider direkt ab. Daher habe ich hier meine genauen Wünsche aufgeschrieben:
 
@@ -39,7 +39,7 @@ Hello! I speak hardly any German. Here are my requests.
 
 PLEASE READ CAREFULLY.
 
-![testimage.png](/img/user/testimage.png)
+![testimage1.png](/img/user/testimage1.png)
 
 ATTENTION: **Asian Hair (Stiff/Hard/Coarse)**.
 
