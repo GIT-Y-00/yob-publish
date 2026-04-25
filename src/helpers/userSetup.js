@@ -1,21 +1,20 @@
 /* 自定义：src/helpers/userSetup.js */
 
 /**
- * Excalidraw React Injector V9.0 (The Hydration Engine)
- * * 继承 V8.4 的所有完美寻址与分轨架构。
- * * [V9.0 核心突破] 跨界文件系统读取：扫描原始 Markdown 提取图片密码本，
- * * 并在构建期将实体图片转为 Base64，强行注入 React 的 files 字典，彻底消灭灰色图片框！
+ * Excalidraw React Injector V9.1 (The Robust Hydration)
+ * * 修复 V9.0 中由于正则过度假设双括号导致图片映射表为空的 Bug。
+ * * [V9.1 核心修复] 采用全兼容扫描器，精准提取 # Embedded Files 下的纯文本文件名。
  */
 
 const fs = require('fs');
 const path = require('path');
 
 console.error("=========================================");
-console.error("[V9.0 Log] userSetup.js loaded. Base64 Hydration Engine ENGAGED.");
+console.error("[V9.1 Log] userSetup.js loaded. Robust Hydration Engine ENGAGED.");
 console.error("=========================================");
 
 // ==========================================
-// [V9.0] 全局图片密码本 (只在构建初期扫描一次)
+// [V9.1 核心修复] 全兼容图片密码本扫描
 // ==========================================
 let globalImageMap = {};
 let isImageMapBuilt = false;
@@ -36,11 +35,16 @@ function buildGlobalImageMap() {
                 const embedIndex = content.lastIndexOf('# Embedded Files');
                 if (embedIndex !== -1) {
                     const embedBlock = content.substring(embedIndex);
-                    // 匹配 40位哈希: [[文件名]]
-                    const regex = /([a-f0-9]{40})\s*:\s*\[\[(.*?)\]\]/gi;
+                    
+                    // [V9.1 修复] 移除对 [[ ]] 的强制要求，直接捕获冒号后面的整行文本
+                    const regex = /([a-f0-9]{40})\s*:\s*([^\n\r]+)/g;
                     let match;
                     while ((match = regex.exec(embedBlock)) !== null) {
-                        globalImageMap[match[1]] = match[2].split('|')[0].trim();
+                        let rawName = match[2].trim();
+                        // 兼容处理：抹除可能存在的左右双括号和别名
+                        rawName = rawName.replace(/^\[\[|\]\]$/g, '').split('|')[0].trim();
+                        
+                        globalImageMap[match[1]] = rawName;
                     }
                 }
             }
@@ -50,14 +54,13 @@ function buildGlobalImageMap() {
     try {
         scanDir(notesDir);
         isImageMapBuilt = true;
-        console.log(`[V9.0 Image Registry] 成功建立映射表，找到 ${Object.keys(globalImageMap).length} 张画板图片。`);
+        console.log(`[V9.1 Image Registry] 成功建立映射表，找到 ${Object.keys(globalImageMap).length} 张画板图片。`);
     } catch (e) {
         console.error("图片映射表建立失败:", e);
     }
 }
 
 
-// V8.4 寻址逻辑
 function applyV83Logic(htmlBlock, modeName, linkMap) {
     let processed = htmlBlock;
     const dataRegex = /(["']?)link\1\s*:\s*(["'])(.*?)\2/g;
@@ -112,16 +115,15 @@ function applyV83Logic(htmlBlock, modeName, linkMap) {
 }
 
 function userEleventySetup(eleventyConfig) {
-  eleventyConfig.addTransform("fix-excalidraw-links-v9.0", function(content, outputPath) {
+  eleventyConfig.addTransform("fix-excalidraw-links-v9.1", function(content, outputPath) {
     if (outputPath && outputPath.endsWith(".html")) {
       
-      // 确保构建期全局图片映射表已就绪
       buildGlobalImageMap();
         
       let fixedContent = content;
 
       // ==========================================
-      // [V9.0 图像榨汁机] 扫描 HTML 找 fileId，生成 Base64 字典
+      // 图像榨汁机 (Base64 Hydration)
       // ==========================================
       const fileIdRegex = /"fileId"\s*:\s*"([a-f0-9]{40})"/gi;
       let injectedFiles = {};
@@ -131,7 +133,6 @@ function userEleventySetup(eleventyConfig) {
           const fileId = fMatch[1];
           if (globalImageMap[fileId] && !injectedFiles[fileId]) {
               const filename = globalImageMap[fileId];
-              // Digital Garden 默认将上传的图片放在 src/site/img/user
               const imgPath = path.join(process.cwd(), 'src', 'site', 'img', 'user', filename);
               
               if (fs.existsSync(imgPath)) {
@@ -139,7 +140,6 @@ function userEleventySetup(eleventyConfig) {
                   const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : (ext === 'svg' ? 'image/svg+xml' : 'image/png');
                   const base64 = fs.readFileSync(imgPath, 'base64');
                   
-                  // 拼装 Excalidraw 所需的 files 字典格式
                   injectedFiles[fileId] = {
                       mimeType: mime,
                       id: fileId,
@@ -148,7 +148,7 @@ function userEleventySetup(eleventyConfig) {
                       lastRetrieved: Date.now()
                   };
               } else {
-                  console.log(`[V9.0 缺图警告] 图片在源码有记录，但未找到实体文件 (请确认 MD 文件中是否有 ![[${filename}]] 强制上传): ${imgPath}`);
+                  console.log(`[V9.1 缺图警告] 源码存在图片暗号，但在服务器 /img/user/ 中未找到实体文件 (${filename})。请确认 MD 文件中是否添加了 ![[${filename}]] 以强制上传。`);
               }
           }
       }
@@ -203,7 +203,7 @@ function userEleventySetup(eleventyConfig) {
       }
 
       // ==========================================
-      // 阶段 C：注入高性能交互卡片 (集成 Base64 注水)
+      // 阶段 C：注入高性能交互卡片 (含动态注水)
       // ==========================================
       const reactInitRegex = /React\.createElement\(\s*ExcalidrawLib\.Excalidraw\s*,\s*\{/;
       
@@ -212,9 +212,8 @@ function userEleventySetup(eleventyConfig) {
           reactInitRegex,
           `((excalidrawProps) => {
               
-            // [V9.0 暴力注水] 将构建期生成的 Base64 图片数据强行塞入 React 初始状态！
             const injectedImgData = ${injectedFilesJson};
-            if (excalidrawProps.initialData) {
+            if (excalidrawProps.initialData && Object.keys(injectedImgData).length > 0) {
                 excalidrawProps.initialData.files = excalidrawProps.initialData.files || {};
                 Object.assign(excalidrawProps.initialData.files, injectedImgData);
             }
